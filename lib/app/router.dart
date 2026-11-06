@@ -11,6 +11,7 @@ import '../features/exercises/presentation/exercise_library_screen.dart';
 import '../features/food/presentation/food_screen.dart';
 import '../features/health/presentation/health_connect_screen.dart';
 import '../features/history/presentation/history_screen.dart';
+import '../features/share/presentation/share_progress_screen.dart';
 import '../features/history_import/presentation/import_history_screen.dart';
 import '../features/settings/presentation/profile_screen.dart';
 import '../features/statistics/presentation/progress_screen.dart';
@@ -39,6 +40,7 @@ abstract final class Routes {
   static String editExercise(int id) => '/exercises/$id/edit';
   static const importHistory = '/import-history';
   static const healthConnect = '/health-connect';
+  static const shareProgress = '/share';
 
   /// The workout in progress (full screen, over the tabs).
   static const activeWorkout = '/session';
@@ -101,6 +103,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.history,
         builder: (context, state) => const HistoryScreen(),
+      ),
+      GoRoute(
+        path: Routes.shareProgress,
+        builder: (context, state) => const ShareProgressScreen(),
       ),
       GoRoute(
         path: Routes.healthConnect,

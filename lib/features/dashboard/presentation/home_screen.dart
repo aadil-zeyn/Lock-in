@@ -9,12 +9,9 @@ import '../../../core/utils/date_format.dart';
 import '../../../core/utils/units.dart';
 import '../../../core/widgets/widgets.dart';
 import '../../body/presentation/log_weight_sheet.dart';
-import '../../food/data/food_repository.dart';
-import '../../food/presentation/food_screen.dart';
 import '../../health/data/health_providers.dart';
-import '../../health/data/health_service.dart';
-import '../../workout/presentation/workout_actions.dart';
 import '../data/dashboard_providers.dart';
+import 'today_card.dart';
 import 'weekly_activity_card.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -24,7 +21,6 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final now = DateTime.now();
     final profile = ref.watch(userProfileProvider).value;
-    final active = ref.watch(activeWorkoutProvider).value;
     final week = ref.watch(thisWeekWorkoutsProvider).value ?? const [];
     final sets = ref.watch(thisWeekSetsProvider).value ?? 0;
     final latest = ref.watch(latestWorkoutProvider).value;
@@ -37,12 +33,14 @@ class HomeScreen extends ConsumerWidget {
 
     return TabPage(
       subtitle: formatLongDate(now),
-      title: name == null || name.isEmpty
-          ? greetingFor(now)
-          : '${greetingFor(now)}, $name',
+      title: name == null || name.isEmpty ? 'Hey there' : 'Hey $name',
       trailing: _Avatar(name: name),
       children: [
         const SizedBox(height: AppSpacing.lg),
+        const TodayCard(),
+        const SizedBox(height: AppSpacing.md),
+        const QuickActions(),
+        const SectionHeader('This week'),
         WeeklyActivityCard(
           workouts: week,
           sets: sets,
@@ -50,18 +48,6 @@ class HomeScreen extends ConsumerWidget {
           workoutGoal: profile?.weeklyWorkoutGoal ?? 3,
           minutesGoal: profile?.weeklyMinutesGoal ?? 180,
           setsGoal: profile?.weeklySetsGoal ?? 45,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        _StartWorkoutCard(active: active),
-        const SizedBox(height: AppSpacing.md),
-        FoodRingsCard(
-          compact: true,
-          totals: totalsFor(
-            ref.watch(dayFoodProvider(dayStart(now))).value ?? const [],
-          ),
-          kcalGoal: profile?.dailyKcalGoal ?? 2200,
-          proteinGoal: profile?.dailyProteinGoal ?? 140,
-          onTap: () => context.go(Routes.food),
         ),
         const SizedBox(height: AppSpacing.md),
         IntrinsicHeight(
@@ -72,7 +58,16 @@ class HomeScreen extends ConsumerWidget {
                 child: _BodyWeightTile(entries: weights, unit: unit),
               ),
               const SizedBox(width: AppSpacing.md),
-              const Expanded(child: _StepsTile()),
+              Expanded(
+                child: StatCard(
+                  label: 'Share',
+                  value: 'Story',
+                  caption: 'Your week as an Instagram card',
+                  icon: Icons.ios_share_rounded,
+                  color: AppColors.streak,
+                  onTap: () => context.push(Routes.shareProgress),
+                ),
+              ),
             ],
           ),
         ),
@@ -121,77 +116,6 @@ class _Avatar extends StatelessWidget {
   }
 }
 
-class _StartWorkoutCard extends ConsumerWidget {
-  const _StartWorkoutCard({required this.active});
-  final Workout? active;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final resuming = active != null;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: AppGradients.energy,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-      ),
-      child: Material(
-        type: MaterialType.transparency,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () => startOrResumeWorkout(context, ref),
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        resuming ? 'Resume workout' : 'Start workout',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.6,
-                          color: AppColors.onAccent,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        resuming
-                            ? active!.name
-                            : 'Empty session or one of your routines',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.onAccent.withValues(alpha: 0.72),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: const BoxDecoration(
-                    color: AppColors.onAccent,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    resuming ? Icons.play_arrow_rounded : Icons.add_rounded,
-                    color: AppColors.accent,
-                    size: 32,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _BodyWeightTile extends StatelessWidget {
   const _BodyWeightTile({required this.entries, required this.unit});
   final List<BodyMeasurement> entries;
@@ -231,47 +155,6 @@ class _BodyWeightTile extends StatelessWidget {
 }
 
 /// Today's steps from Health Connect, or a prompt to connect it.
-class _StepsTile extends ConsumerWidget {
-  const _StepsTile();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final status = ref.watch(healthStatusProvider).value;
-    final week = ref.watch(weekStepsProvider).value;
-    void openSettings() => context.push(Routes.healthConnect);
-
-    if (status == null || !status.connected || week == null) {
-      final unavailable =
-          status != null && status.availability != HealthAvailability.available;
-      return StatCard(
-        label: 'Steps',
-        value: '—',
-        caption: unavailable
-            ? 'Needs Health Connect (Android)'
-            : 'Tap to connect Health Connect',
-        icon: Icons.directions_walk_rounded,
-        color: AppColors.steps,
-        onTap: openSettings,
-      );
-    }
-    final today = week.last;
-    final avg = week.reduce((a, b) => a + b) ~/ week.length;
-    return StatCard(
-      label: 'Steps',
-      value: _thousands(today),
-      caption: '7-day avg ${_thousands(avg)}',
-      icon: Icons.directions_walk_rounded,
-      color: AppColors.steps,
-      onTap: openSettings,
-    );
-  }
-
-  static String _thousands(int n) => n.toString().replaceAllMapped(
-    RegExp(r'(\d)(?=(\d{3})+$)'),
-    (m) => '${m[1]},',
-  );
-}
-
 class _LatestWorkoutCard extends StatelessWidget {
   const _LatestWorkoutCard({required this.workout});
   final Workout workout;
