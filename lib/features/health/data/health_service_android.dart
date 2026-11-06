@@ -103,6 +103,39 @@ class _HealthConnect implements HealthService {
   }
 
   @override
+  Future<List<({DateTime day, int steps})>> dailySteps(
+    DateTime firstDay,
+  ) async {
+    await _ready();
+    final start = DateTime(firstDay.year, firstDay.month, firstDay.day);
+    final now = DateTime.now();
+    // One aggregate query sliced into 24 h buckets starting at local midnight.
+    final points = await _health.getHealthIntervalDataFromTypes(
+      startDate: start,
+      endDate: now,
+      types: const [HealthDataType.STEPS],
+      interval: 86400,
+    );
+    final byDay = <DateTime, int>{};
+    for (final p in points) {
+      final v = p.value;
+      if (v is! NumericHealthValue) continue;
+      final d = p.dateFrom.toLocal();
+      final key = DateTime(d.year, d.month, d.day);
+      byDay[key] = (byDay[key] ?? 0) + v.numericValue.round();
+    }
+    final out = <({DateTime day, int steps})>[];
+    for (
+      var d = start;
+      !d.isAfter(now);
+      d = DateTime(d.year, d.month, d.day + 1)
+    ) {
+      out.add((day: d, steps: byDay[d] ?? 0));
+    }
+    return out;
+  }
+
+  @override
   Future<List<HealthWeight>> weights(DateTime start, DateTime end) async {
     await _ready();
     final points = await _health.getHealthDataFromTypes(

@@ -26,6 +26,10 @@ class _Unavailable implements HealthService {
   @override
   Future<int?> steps(DateTime start, DateTime end) async => null;
   @override
+  Future<List<({DateTime day, int steps})>> dailySteps(
+    DateTime firstDay,
+  ) async => const [];
+  @override
   Future<List<HealthWeight>> weights(DateTime start, DateTime end) async =>
       const [];
   @override

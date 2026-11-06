@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show Uint8List;
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_tokens.dart';
@@ -8,6 +9,7 @@ import '../../../core/utils/units.dart';
 import '../../../core/widgets/widgets.dart';
 import '../../workout/data/workout_repository.dart';
 import '../../workout/presentation/set_row.dart';
+import '../data/day_card.dart';
 import '../data/share_stats.dart';
 
 /// Story cards are laid out at 360 × 640 logical px (9:16) and captured at
@@ -599,6 +601,252 @@ class WorkoutStoryCard extends StatelessWidget {
             ),
           const Spacer(),
           const _Footer(),
+        ],
+      ),
+    );
+  }
+}
+
+/// "Day 311/365": today's ticks (steps, workout, protein, calories), the
+/// year so far, and the steps streak. With [photo] (e.g. a pump pic) the
+/// photo fills the card and the stats sit on a dark fade at the bottom.
+class DayStoryCard extends StatelessWidget {
+  const DayStoryCard({super.key, required this.data, this.photo});
+  final DayCardData data;
+  final Uint8List? photo;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = data;
+    final year = d.day / d.yearDays;
+    final steps = d.steps;
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _Brand(right: formatLongDate(d.date).toUpperCase()),
+        const Spacer(),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(bottom: 14),
+                child: Text(
+                  'DAY ',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2,
+                    color: AppColors.accent,
+                  ),
+                ),
+              ),
+              Text(
+                '${d.day}',
+                style: const TextStyle(
+                  fontSize: 84,
+                  height: 0.95,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -3,
+                  color: AppColors.textPrimary,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  ' / ${d.yearDays}',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: year,
+            minHeight: 6,
+            color: AppColors.accent,
+            backgroundColor: Colors.white.withValues(alpha: 0.12),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          '${(year * 100).round()}% of ${d.date.year} · '
+          '${d.yearDays - d.day} days left',
+          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+        ),
+        const SizedBox(height: 18),
+        _Tick(
+          done: d.stepsOk,
+          label: 'Steps',
+          value: steps == null
+              ? 'connect Health Connect'
+              : '${_thousands(steps)} / ${_thousands(d.stepsGoal)}',
+          color: AppColors.steps,
+        ),
+        _Tick(
+          done: d.workoutOk,
+          label: 'Workout',
+          value: d.workoutName ?? 'rest day',
+          color: AppColors.workouts,
+        ),
+        _Tick(
+          done: d.proteinOk,
+          label: 'Protein',
+          value: '${d.proteinG} / ${d.proteinGoal} g',
+          color: AppColors.protein,
+        ),
+        _Tick(
+          done: d.kcalOk,
+          label: 'Calories',
+          value: '${_thousands(d.kcal)} / ${_thousands(d.kcalGoal)} kcal',
+          color: AppColors.food,
+        ),
+        if (d.streak >= 2) ...[
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              const Icon(
+                Icons.local_fire_department_rounded,
+                color: AppColors.accent,
+                size: 18,
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  '${d.streak}-day ${_thousands(d.stepsGoal)}-step streak',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+        const SizedBox(height: 14),
+        const _Footer(),
+      ],
+    );
+
+    if (photo == null) {
+      return _StoryFrame(glow: AppColors.accent, child: content);
+    }
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
+      child: SizedBox.fromSize(
+        size: storySize,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.memory(photo!, fit: BoxFit.cover, gaplessPlayback: true),
+            // Fade to black behind the text so it stays readable on any photo.
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: [0, 0.18, 0.42, 0.62, 1],
+                  colors: [
+                    Color(0x99000000),
+                    Color(0x00000000),
+                    Color(0x00000000),
+                    Color(0xD9000000),
+                    Color(0xF7000000),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+              child: content,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Tick extends StatelessWidget {
+  const _Tick({
+    required this.done,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+  final bool done;
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: done ? color : Colors.transparent,
+              border: done
+                  ? null
+                  : Border.all(
+                      color: Colors.white.withValues(alpha: 0.35),
+                      width: 2,
+                    ),
+            ),
+            child: done
+                ? const Icon(
+                    Icons.check_rounded,
+                    size: 17,
+                    color: AppColors.onAccent,
+                  )
+                : null,
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 78,
+            child: Text(
+              label,
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.fade,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: done ? AppColors.textPrimary : AppColors.textSecondary,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
         ],
       ),
     );

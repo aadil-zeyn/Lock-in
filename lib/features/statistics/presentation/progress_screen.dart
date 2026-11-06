@@ -12,6 +12,7 @@ import '../../../core/widgets/widgets.dart';
 import '../../body/data/body_repository.dart';
 import '../../body/presentation/log_weight_sheet.dart';
 import '../../dashboard/data/dashboard_providers.dart';
+import '../../health/data/health_providers.dart';
 import '../data/stats.dart';
 import '../data/stats_providers.dart';
 
@@ -27,6 +28,8 @@ class ProgressScreen extends ConsumerWidget {
       children: [
         const SizedBox(height: AppSpacing.lg),
         _WeightSection(unit: unit),
+        const SectionHeader('Steps'),
+        const _StepsSection(),
         const SectionHeader('Training'),
         const _TrainingCard(),
         const SectionHeader('Strength'),
@@ -363,6 +366,155 @@ class _WeightLog extends ConsumerWidget {
     if (ok == true) {
       await ref.read(bodyRepositoryProvider).deleteMeasurement(m.id);
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Steps (from Health Connect)
+// ---------------------------------------------------------------------------
+
+String _thousands(num n) => n.round().toString().replaceAllMapped(
+  RegExp(r'(\d)(?=(\d{3})+$)'),
+  (m) => '${m[1]},',
+);
+
+class _StepsSection extends ConsumerStatefulWidget {
+  const _StepsSection();
+
+  @override
+  ConsumerState<_StepsSection> createState() => _StepsSectionState();
+}
+
+class _StepsSectionState extends ConsumerState<_StepsSection> {
+  int _days = 30;
+  static const _ranges = [(30, '1M'), (91, '3M'), (182, '6M'), (365, '1Y')];
+
+  @override
+  Widget build(BuildContext context) {
+    final history = ref.watch(stepsHistoryProvider(_days));
+    final goal = ref.watch(userProfileProvider).value?.dailyStepsGoal ?? 8000;
+    final text = Theme.of(context).textTheme;
+
+    if (!history.isLoading && history.value == null) {
+      return EmptyState(
+        compact: true,
+        icon: Icons.directions_walk_rounded,
+        title: 'See your step history',
+        message:
+            'Connect Health Connect to bring in steps from Google Fit, '
+            'Mi Fitness or your phone.',
+        actionLabel: 'Connect',
+        onAction: () => context.push(Routes.healthConnect),
+      );
+    }
+    final days = history.value ?? const [];
+    final points = [
+      for (final d in days)
+        (x: d.day.add(const Duration(hours: 12)), y: d.steps.toDouble()),
+    ];
+    final withData = days.where((d) => d.steps > 0).toList();
+    final avg = withData.isEmpty
+        ? 0
+        : withData.fold<int>(0, (n, d) => n + d.steps) / withData.length;
+    final best = withData.isEmpty
+        ? null
+        : withData.reduce((a, b) => a.steps >= b.steps ? a : b);
+    final hit = days.where((d) => d.steps >= goal).length;
+
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const IconBadge(
+                icon: Icons.directions_walk_rounded,
+                color: AppColors.steps,
+                size: 36,
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Daily average', style: text.titleSmall),
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: _thousands(avg),
+                            style: AppText.metricL,
+                          ),
+                          const TextSpan(text: ' steps', style: AppText.unit),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Wrap(
+            spacing: AppSpacing.sm,
+            children: [
+              for (final (n, label) in _ranges)
+                SelectChip(
+                  label: label,
+                  selected: _days == n,
+                  color: AppColors.steps,
+                  onTap: () => setState(() => _days = n),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          if (history.isLoading)
+            const SizedBox(
+              height: 200,
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (withData.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+              child: Text(
+                'No steps in Health Connect for this range yet.',
+                textAlign: TextAlign.center,
+                style: text.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            )
+          else
+            TimeLineChart(
+              points: points,
+              trend: movingAverage(points),
+              color: AppColors.steps,
+              formatValue: (v) => '${_thousands(v)} steps',
+              formatAxis: (v) => v >= 1000
+                  ? '${(v / 1000).toStringAsFixed(v % 1000 == 0 ? 0 : 1)}k'
+                  : '${v.round()}',
+              pointsLabel: 'Daily steps',
+              trendLabel: '7-day average',
+              semanticsLabel:
+                  'Steps chart, ${days.length} days, average ${_thousands(avg)}',
+            ),
+          if (withData.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              children: [
+                _MiniStat(
+                  label: 'Best day',
+                  value: best == null ? '—' : _thousands(best.steps),
+                ),
+                _MiniStat(label: 'Goal days', value: '$hit of ${days.length}'),
+                _MiniStat(label: 'Goal', value: _thousands(goal)),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
 

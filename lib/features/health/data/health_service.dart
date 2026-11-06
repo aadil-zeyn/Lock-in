@@ -45,6 +45,10 @@ abstract class HealthService {
   /// Total steps from [start] to [end] (deduplicated across sources).
   Future<int?> steps(DateTime start, DateTime end);
 
+  /// Steps per local calendar day from [firstDay] (midnight) to now, in one
+  /// query. Days with no data are 0. Oldest first.
+  Future<List<({DateTime day, int steps})>> dailySteps(DateTime firstDay);
+
   Future<List<HealthWeight>> weights(DateTime start, DateTime end);
 
   Future<bool> writeWeight(double kg, DateTime at);

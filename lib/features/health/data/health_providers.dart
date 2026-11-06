@@ -67,6 +67,20 @@ final weekStepsProvider = FutureProvider<List<int>?>((ref) async {
   return days;
 });
 
+/// Daily steps for the last [days] days (oldest first, today last), or
+/// null when Health Connect isn't connected.
+final stepsHistoryProvider =
+    FutureProvider.family<List<({DateTime day, int steps})>?, int>((
+      ref,
+      days,
+    ) async {
+      final status = await ref.watch(healthStatusProvider.future);
+      if (!status.canReadSteps) return null;
+      final now = DateTime.now();
+      final first = DateTime(now.year, now.month, now.day - (days - 1));
+      return ref.watch(healthServiceProvider).dailySteps(first);
+    });
+
 /// Pulls body weight from Health Connect into Lock-in. Reads everything
 /// when full-history access is granted, otherwise the last 30 days.
 Future<int> syncWeightsFromHealth({

@@ -1,0 +1,127 @@
+import 'package:drift/drift.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/database/app_database.dart';
+import '../../../core/database/database_provider.dart';
+import '../../food/data/food_repository.dart';
+import '../../health/data/health_providers.dart';
+
+/// 1 for 1 January. UTC dates so a DST change can't shift the count.
+int dayOfYear(DateTime d) =>
+    DateTime.utc(
+      d.year,
+      d.month,
+      d.day,
+    ).difference(DateTime.utc(d.year, 1, 1)).inDays +
+    1;
+
+int daysInYear(int year) =>
+    DateTime.utc(year + 1, 1, 1).difference(DateTime.utc(year, 1, 1)).inDays;
+
+/// Consecutive days at or above [goal], ending today. Today only counts
+/// once reached; until then the streak runs to yesterday.
+int stepsStreak(List<int> stepsOldestFirst, int goal) {
+  if (stepsOldestFirst.isEmpty || goal <= 0) return 0;
+  var i = stepsOldestFirst.length - 1;
+  if (stepsOldestFirst[i] < goal) i--; // today still in progress
+  var n = 0;
+  for (; i >= 0 && stepsOldestFirst[i] >= goal; i--) {
+    n++;
+  }
+  return n;
+}
+
+/// Whether today's calories match the goal: at most ~target when losing,
+/// at least ~target when gaining, within ±10% when maintaining.
+bool caloriesOnTarget(int eaten, int target, WeightGoal? goal) {
+  if (eaten <= 0 || target <= 0) return false;
+  final r = eaten / target;
+  return switch (goal) {
+    WeightGoal.lose => r >= 0.7 && r <= 1.05,
+    WeightGoal.gain => r >= 0.95,
+    _ => r >= 0.9 && r <= 1.1,
+  };
+}
+
+class DayCardData {
+  const DayCardData({
+    required this.date,
+    required this.steps,
+    required this.stepsGoal,
+    required this.streak,
+    required this.workoutName,
+    required this.proteinG,
+    required this.proteinGoal,
+    required this.kcal,
+    required this.kcalGoal,
+    required this.kcalOk,
+  });
+
+  final DateTime date;
+
+  /// Null when Health Connect isn't connected.
+  final int? steps;
+  final int stepsGoal;
+  final int streak;
+
+  /// Today's workout (finished or in progress), or null for a rest day.
+  final String? workoutName;
+  final int proteinG;
+  final int proteinGoal;
+  final int kcal;
+  final int kcalGoal;
+  final bool kcalOk;
+
+  int get day => dayOfYear(date);
+  int get yearDays => daysInYear(date.year);
+  bool get stepsOk => (steps ?? 0) >= stepsGoal;
+  bool get workoutOk => workoutName != null;
+  bool get proteinOk => proteinGoal > 0 && proteinG >= proteinGoal;
+}
+
+final dayCardProvider = FutureProvider.autoDispose<DayCardData>((ref) async {
+  final db = ref.watch(databaseProvider);
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+
+  final profile = await (db.select(
+    db.userProfiles,
+  )..where((p) => p.id.equals(1))).getSingle();
+  final stepsGoal = profile.dailyStepsGoal;
+  final history = await ref.watch(stepsHistoryProvider(120).future);
+  final stepsList = history?.map((d) => d.steps).toList();
+
+  final workout =
+      await (db.select(db.workouts)
+            ..where(
+              (w) =>
+                  w.status.isNotValue(WorkoutStatus.discarded.name) &
+                  w.startedAt.isBiggerOrEqualValue(today),
+            )
+            ..orderBy([(w) => OrderingTerm.desc(w.startedAt)])
+            ..limit(1))
+          .getSingleOrNull();
+
+  final food = totalsFor(
+    await (db.select(
+      db.foodEntries,
+    )..where((f) => f.loggedAt.isBiggerOrEqualValue(today))).get(),
+  );
+
+  return DayCardData(
+    date: now,
+    steps: stepsList?.last,
+    stepsGoal: stepsGoal,
+    streak: stepsList == null ? 0 : stepsStreak(stepsList, stepsGoal),
+    workoutName: workout?.name,
+    proteinG: food.proteinG.round(),
+    proteinGoal: profile.dailyProteinGoal,
+    kcal: food.kcal,
+    kcalGoal: profile.dailyKcalGoal,
+    kcalOk: caloriesOnTarget(
+      food.kcal,
+      profile.dailyKcalGoal,
+      profile.weightGoal,
+    ),
+  );
+});
