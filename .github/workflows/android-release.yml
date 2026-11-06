@@ -66,6 +66,12 @@ jobs:
           KEYSTORE_PASSWORD=$(trim "$KEYSTORE_PASSWORD")
           KEY_ALIAS=$(trim "$KEY_ALIAS")
           KEY_PASSWORD=$(trim "$KEY_PASSWORD")
+          # The app is signed with the Android *debug* key, whose passwords
+          # and alias are the public defaults. Use them when a secret is
+          # missing (switch to a real upload key before any store release).
+          KEYSTORE_PASSWORD=${KEYSTORE_PASSWORD:-android}
+          KEY_PASSWORD=${KEY_PASSWORD:-$KEYSTORE_PASSWORD}
+          KEY_ALIAS=${KEY_ALIAS:-androiddebugkey}
           trim "$KEYSTORE_BASE64" | base64 --decode > android/app/release.jks
           # Size and checksum (not secret) to compare with the original file.
           echo "::notice::Key file: $(wc -c < android/app/release.jks) bytes, sha256 $(sha256sum android/app/release.jks | cut -c1-16)…; password length ${#KEYSTORE_PASSWORD}, alias '${KEY_ALIAS}'"
