@@ -95,7 +95,10 @@ class WorkoutSummaryScreen extends ConsumerWidget {
                 Expanded(
                   child: StatCard(
                     label: 'Time',
-                    value: formatDuration(duration),
+                    // Imported workouts may have no duration recorded.
+                    value: duration == Duration.zero
+                        ? '—'
+                        : formatDuration(duration),
                     icon: Icons.timer_rounded,
                     color: AppColors.time,
                   ),

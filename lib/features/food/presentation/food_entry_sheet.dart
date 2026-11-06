@@ -36,6 +36,8 @@ class _FoodEntrySheet extends ConsumerStatefulWidget {
 class _FoodEntrySheetState extends ConsumerState<_FoodEntrySheet> {
   late final TextEditingController _kcal;
   late final TextEditingController _protein;
+  late final TextEditingController _carbs;
+  late final TextEditingController _fat;
   late final TextEditingController _name;
   late Meal _meal;
   bool _favourite = false;
@@ -51,6 +53,10 @@ class _FoodEntrySheetState extends ConsumerState<_FoodEntrySheet> {
     _protein = TextEditingController(
       text: e?.proteinG == null ? '' : _trim(e!.proteinG!),
     );
+    _carbs = TextEditingController(
+      text: e?.carbsG == null ? '' : _trim(e!.carbsG!),
+    );
+    _fat = TextEditingController(text: e?.fatG == null ? '' : _trim(e!.fatG!));
     _name = TextEditingController(text: e?.name ?? '');
     _meal = e?.meal ?? widget.meal ?? Meal.forTime(DateTime.now());
   }
@@ -62,6 +68,8 @@ class _FoodEntrySheetState extends ConsumerState<_FoodEntrySheet> {
   void dispose() {
     _kcal.dispose();
     _protein.dispose();
+    _carbs.dispose();
+    _fat.dispose();
     _name.dispose();
     super.dispose();
   }
@@ -76,9 +84,12 @@ class _FoodEntrySheetState extends ConsumerState<_FoodEntrySheet> {
 
   Future<void> _save() async {
     final kcal = int.tryParse(_kcal.text);
-    final protein = _protein.text.trim().isEmpty
+    double? grams(TextEditingController c) => c.text.trim().isEmpty
         ? null
-        : double.tryParse(_protein.text.replaceAll(',', '.'));
+        : double.tryParse(c.text.replaceAll(',', '.'));
+    final protein = grams(_protein);
+    final carbs = grams(_carbs);
+    final fat = grams(_fat);
     final error = validateFoodValues(kcal, protein);
     if (error != null) {
       setState(() => _error = error);
@@ -92,6 +103,8 @@ class _FoodEntrySheetState extends ConsumerState<_FoodEntrySheet> {
         meal: _meal,
         name: _name.text,
         proteinG: protein,
+        carbsG: carbs,
+        fatG: fat,
       );
     } else {
       await repo.addEntry(
@@ -100,10 +113,12 @@ class _FoodEntrySheetState extends ConsumerState<_FoodEntrySheet> {
         at: _timestamp(),
         name: _name.text,
         proteinG: protein,
+        carbsG: carbs,
+        fatG: fat,
       );
     }
     if (_favourite && _name.text.trim().isNotEmpty) {
-      await repo.saveFood(_name.text, kcal, protein);
+      await repo.saveFood(_name.text, kcal, protein, carbsG: carbs, fatG: fat);
     }
     HapticFeedback.mediumImpact();
     if (mounted) Navigator.pop(context);
@@ -198,11 +213,22 @@ class _FoodEntrySheetState extends ConsumerState<_FoodEntrySheet> {
                     ],
                     style: AppText.metricM,
                     decoration: const InputDecoration(
-                      hintText: '—',
-                      suffixText: 'g protein',
-                      suffixStyle: AppText.unit,
+                      labelText: 'Protein (g)',
+                      hintText: 'optional',
                     ),
                   ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              children: [
+                Expanded(
+                  child: _GramField(controller: _carbs, label: 'Carbs (g)'),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: _GramField(controller: _fat, label: 'Fat (g)'),
                 ),
               ],
             ),
@@ -250,6 +276,25 @@ class _FoodEntrySheetState extends ConsumerState<_FoodEntrySheet> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _GramField extends StatelessWidget {
+  const _GramField({required this.controller, required this.label});
+  final TextEditingController controller;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      textAlign: TextAlign.center,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(RegExp(r'^\d{0,3}([.,]\d?)?')),
+      ],
+      decoration: InputDecoration(labelText: label, hintText: 'optional'),
     );
   }
 }

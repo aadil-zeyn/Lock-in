@@ -1,6 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lock_in/core/database/app_database.dart';
+import 'package:lock_in/features/food/data/food_catalog.dart';
 import 'package:lock_in/features/food/data/food_repository.dart';
 
 void main() {
@@ -90,6 +91,26 @@ void main() {
       (logged.name, logged.kcal, logged.proteinG),
       ('protein SHAKE', 200, 32.0),
     );
+  });
+
+  test('built-in foods scale by servings, with macros in the totals', () async {
+    final puttu = foodCatalog.firstWhere((f) => f.name == 'Puttu');
+    final egg = foodCatalog.firstWhere((f) => f.name == 'Boiled egg');
+    await repo.logCatalog(puttu, 2, Meal.breakfast, noon);
+    await repo.logCatalog(egg, 1.5, Meal.breakfast, noon);
+    final rows = await repo.watchDay(noon).first;
+    expect(rows.map((e) => e.name), ['Puttu × 2', 'Boiled egg × 1½']);
+    expect(rows.first.kcal, puttu.kcal * 2);
+    expect(rows.first.carbsG, puttu.carbs * 2);
+    final t = totalsFor(rows);
+    expect(t.kcal, puttu.kcal * 2 + (egg.kcal * 1.5).round());
+    expect(t.fatG, closeTo(puttu.fat * 2 + egg.fat * 1.5, 0.11));
+  });
+
+  test('servings read naturally', () {
+    expect(formatServings(1), '1');
+    expect(formatServings(0.5), '½');
+    expect(formatServings(2.5), '2½');
   });
 
   test('goals are saved on the profile', () async {

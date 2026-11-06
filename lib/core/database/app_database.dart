@@ -163,6 +163,10 @@ class FoodEntries extends Table {
   TextColumn get name => text().withDefault(const Constant(''))();
   IntColumn get kcal => integer()();
   RealColumn get proteinG => real().nullable()();
+
+  // Schema v4: approximate macros from the built-in food list.
+  RealColumn get carbsG => real().nullable()();
+  RealColumn get fatG => real().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
@@ -173,6 +177,8 @@ class SavedFoods extends Table {
   TextColumn get name => text().withLength(min: 1, max: 80)();
   IntColumn get kcal => integer()();
   RealColumn get proteinG => real().nullable()();
+  RealColumn get carbsG => real().nullable()(); // schema v4
+  RealColumn get fatG => real().nullable()(); // schema v4
   IntColumn get useCount => integer().withDefault(const Constant(0))();
   DateTimeColumn get lastUsedAt => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -214,10 +220,11 @@ class AppDatabase extends _$AppDatabase {
 
   /// v1: initial schema. v2: band level on sets + band exercises.
   /// v3: food entries, saved foods, daily kcal/protein goals.
+  /// v4: carbs and fat on food entries and saved foods.
   /// The app is installed on a real phone now: every schema change needs
   /// a step in `onUpgrade` and a test in `test/migration_test.dart`.
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -253,6 +260,14 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(savedFoods);
         await m.addColumn(userProfiles, userProfiles.dailyKcalGoal);
         await m.addColumn(userProfiles, userProfiles.dailyProteinGoal);
+      }
+      if (from >= 3 && from < 4) {
+        // From v3 the food tables exist without macros; a database coming
+        // from v1/v2 just had them created above with the v4 columns.
+        await m.addColumn(foodEntries, foodEntries.carbsG);
+        await m.addColumn(foodEntries, foodEntries.fatG);
+        await m.addColumn(savedFoods, savedFoods.carbsG);
+        await m.addColumn(savedFoods, savedFoods.fatG);
       }
     },
     beforeOpen: (details) async {

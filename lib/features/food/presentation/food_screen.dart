@@ -9,6 +9,7 @@ import '../../../core/widgets/widgets.dart';
 import '../../dashboard/data/dashboard_providers.dart';
 import '../data/food_repository.dart';
 import 'food_entry_sheet.dart';
+import 'food_picker_sheet.dart';
 
 String _thousands(int n) => n.toString().replaceAllMapped(
   RegExp(r'(\d)(?=(\d{3})+$)'),
@@ -98,6 +99,12 @@ class _FoodScreenState extends ConsumerState<FoodScreen> {
             profile?.dailyProteinGoal ?? 140,
           ),
         ),
+        const SizedBox(height: AppSpacing.md),
+        PrimaryButton(
+          label: 'Add food',
+          icon: Icons.add_rounded,
+          onPressed: () => showFoodPicker(context, day: _day),
+        ),
         if (saved.isNotEmpty) ...[
           const SectionHeader('Favourites'),
           SizedBox(
@@ -126,7 +133,7 @@ class _FoodScreenState extends ConsumerState<FoodScreen> {
             meal: meal,
             entries: totals.byMeal[meal]!,
             kcal: totals.kcalFor(meal),
-            onAdd: () => showFoodEntrySheet(context, day: _day, meal: meal),
+            onAdd: () => showFoodPicker(context, day: _day, meal: meal),
             onOpen: (e) => showFoodEntrySheet(context, day: _day, existing: e),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -134,7 +141,7 @@ class _FoodScreenState extends ConsumerState<FoodScreen> {
         if (entries.isEmpty)
           Text(
             _isToday
-                ? 'Tap + on a meal to log it. Only calories are required.'
+                ? 'Tap Add food and search the list — puttu, omelette, biryani…'
                 : 'Nothing logged on this day.',
             textAlign: TextAlign.center,
             style: text.bodySmall?.copyWith(color: AppColors.textSecondary),
@@ -277,6 +284,17 @@ class FoodRingsCard extends StatelessWidget {
                   color: AppColors.protein,
                   text: '$protein / $proteinGoal g protein',
                 ),
+                if (totals.carbsG > 0 || totals.fatG > 0) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    'Carbs ${totals.carbsG.round()} g · Fat ${totals.fatG.round()} g',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textTertiary,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ],
                 if (!compact && onTap != null) ...[
                   const SizedBox(height: AppSpacing.sm),
                   Text(

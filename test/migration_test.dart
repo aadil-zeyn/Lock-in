@@ -7,6 +7,7 @@ import 'package:lock_in/core/database/seed_exercises.dart';
 import 'generated_migrations/schema.dart';
 import 'generated_migrations/schema_v1.dart' as v1;
 import 'generated_migrations/schema_v2.dart' as v2;
+import 'generated_migrations/schema_v3.dart' as v3;
 
 /// Every schema step must keep real users' data. Schemas are dumped to
 /// `drift_schemas/` with `dart run drift_dev schema dump` before each change.
@@ -17,14 +18,37 @@ void main() {
     verifier = SchemaVerifier(GeneratedHelper());
   });
 
-  for (final from in [1, 2]) {
-    test('v$from → v3 produces exactly the v3 schema', () async {
+  for (final from in [1, 2, 3]) {
+    test('v$from → v4 produces exactly the v4 schema', () async {
       final connection = await verifier.startAt(from);
       final db = AppDatabase(connection);
-      await verifier.migrateAndValidate(db, 3);
+      await verifier.migrateAndValidate(db, 4);
       await db.close();
     });
   }
+
+  test('v3 → v4 keeps food entries and adds empty macros', () async {
+    final schema = await verifier.schemaAt(3);
+    final old = v3.DatabaseAtV3(schema.newConnection());
+    await old.customStatement(
+      "INSERT INTO food_entries (id, logged_at, meal, name, kcal, protein_g, "
+      "created_at, updated_at) VALUES (1, 1793980000, 'lunch', 'Biryani', "
+      "600, 28.0, 0, 0)",
+    );
+    await old.customStatement(
+      "INSERT INTO saved_foods (id, name, kcal, protein_g, use_count, "
+      "created_at) VALUES (1, 'Shake', 180, 30.0, 4, 0)",
+    );
+    await old.close();
+
+    final db = AppDatabase(schema.newConnection());
+    final e = await db.select(db.foodEntries).getSingle();
+    expect((e.name, e.kcal, e.proteinG), ('Biryani', 600, 28.0));
+    expect((e.carbsG, e.fatG), (null, null));
+    final f = await db.select(db.savedFoods).getSingle();
+    expect((f.name, f.useCount, f.carbsG), ('Shake', 4, null));
+    await db.close();
+  });
 
   test('v2 → v3 keeps the profile and adds food goals', () async {
     final schema = await verifier.schemaAt(2);

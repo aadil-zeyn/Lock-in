@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_provider.dart';
+import 'food_catalog.dart';
 
 const maxKcalPerEntry = 10000;
 const maxProteinPerEntry = 500.0;
@@ -22,9 +23,13 @@ class DayTotals {
     required this.kcal,
     required this.proteinG,
     required this.byMeal,
+    this.carbsG = 0,
+    this.fatG = 0,
   });
   final int kcal;
   final double proteinG;
+  final double carbsG;
+  final double fatG;
   final Map<Meal, List<FoodEntry>> byMeal;
 
   int kcalFor(Meal m) => (byMeal[m] ?? const []).fold(0, (n, e) => n + e.kcal);
@@ -33,16 +38,37 @@ class DayTotals {
 DayTotals totalsFor(List<FoodEntry> entries) {
   final byMeal = {for (final m in Meal.values) m: <FoodEntry>[]};
   var kcal = 0;
-  var protein = 0.0;
+  var protein = 0.0, carbs = 0.0, fat = 0.0;
   for (final e in entries) {
     byMeal[e.meal]!.add(e);
     kcal += e.kcal;
     protein += e.proteinG ?? 0;
+    carbs += e.carbsG ?? 0;
+    fat += e.fatG ?? 0;
   }
-  return DayTotals(kcal: kcal, proteinG: protein, byMeal: byMeal);
+  return DayTotals(
+    kcal: kcal,
+    proteinG: protein,
+    carbsG: carbs,
+    fatG: fat,
+    byMeal: byMeal,
+  );
 }
 
 DateTime dayStart(DateTime d) => DateTime(d.year, d.month, d.day);
+
+/// "1½", "2", "0.25" — servings as people write them.
+String formatServings(double s) {
+  final whole = s.truncate();
+  final frac = s - whole;
+  if (frac == 0) return '$whole';
+  if (frac == 0.5) return whole == 0 ? '½' : '$whole½';
+  return s.toStringAsFixed(2).replaceFirst(RegExp(r'0+$'), '');
+}
+
+/// Entry name for a built-in food, e.g. "Puttu × 2" (just the name for 1).
+String catalogEntryName(CatalogFood f, double servings) =>
+    servings == 1 ? f.name : '${f.name} × ${formatServings(servings)}';
 
 class FoodRepository {
   FoodRepository(this._db);
@@ -54,6 +80,8 @@ class FoodRepository {
     required DateTime at,
     String name = '',
     double? proteinG,
+    double? carbsG,
+    double? fatG,
   }) {
     final error = validateFoodValues(kcal, proteinG);
     if (error != null) throw ArgumentError(error);
@@ -66,6 +94,8 @@ class FoodRepository {
             name: Value(name.trim()),
             kcal: kcal,
             proteinG: Value(proteinG),
+            carbsG: Value(carbsG),
+            fatG: Value(fatG),
           ),
         );
   }
@@ -76,6 +106,8 @@ class FoodRepository {
     required Meal meal,
     String name = '',
     double? proteinG,
+    double? carbsG,
+    double? fatG,
   }) async {
     final error = validateFoodValues(kcal, proteinG);
     if (error != null) throw ArgumentError(error);
@@ -85,6 +117,8 @@ class FoodRepository {
         name: Value(name.trim()),
         kcal: Value(kcal),
         proteinG: Value(proteinG),
+        carbsG: Value(carbsG),
+        fatG: Value(fatG),
         updatedAt: Value(DateTime.now()),
       ),
     );
@@ -94,7 +128,13 @@ class FoodRepository {
       (_db.delete(_db.foodEntries)..where((e) => e.id.equals(id))).go();
 
   /// Saves (or updates, matching the name case-insensitively) a favourite.
-  Future<int> saveFood(String name, int kcal, double? proteinG) async {
+  Future<int> saveFood(
+    String name,
+    int kcal,
+    double? proteinG, {
+    double? carbsG,
+    double? fatG,
+  }) async {
     final clean = name.trim().replaceAll(RegExp(r'\s+'), ' ');
     if (clean.isEmpty) throw ArgumentError('Give the food a name');
     final error = validateFoodValues(kcal, proteinG);
@@ -111,6 +151,8 @@ class FoodRepository {
           name: Value(clean),
           kcal: Value(kcal),
           proteinG: Value(proteinG),
+          carbsG: Value(carbsG),
+          fatG: Value(fatG),
         ),
       );
       return existing.id;
@@ -122,6 +164,8 @@ class FoodRepository {
             name: clean,
             kcal: kcal,
             proteinG: Value(proteinG),
+            carbsG: Value(carbsG),
+            fatG: Value(fatG),
           ),
         );
   }
@@ -135,6 +179,8 @@ class FoodRepository {
         at: at,
         name: food.name,
         proteinG: food.proteinG,
+        carbsG: food.carbsG,
+        fatG: food.fatG,
       );
       await (_db.update(
         _db.savedFoods,
@@ -146,6 +192,26 @@ class FoodRepository {
       );
       return id;
     });
+  }
+
+  /// Logs [servings] of a built-in food, scaling its nutrition.
+  Future<int> logCatalog(
+    CatalogFood food,
+    double servings,
+    Meal meal,
+    DateTime at,
+  ) {
+    final s = servings <= 0 ? 1.0 : servings;
+    double r(double v) => double.parse((v * s).toStringAsFixed(1));
+    return addEntry(
+      kcal: (food.kcal * s).round(),
+      meal: meal,
+      at: at,
+      name: catalogEntryName(food, s),
+      proteinG: r(food.protein),
+      carbsG: r(food.carbs),
+      fatG: r(food.fat),
+    );
   }
 
   Future<void> deleteSaved(int id) =>
