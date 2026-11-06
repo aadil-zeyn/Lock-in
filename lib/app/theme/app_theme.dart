@@ -21,11 +21,20 @@ abstract final class AppTheme {
 
     const textTheme = TextTheme(
       displaySmall: TextStyle(
-          fontSize: 34, fontWeight: FontWeight.w700, letterSpacing: -1),
+        fontSize: 34,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -1,
+      ),
       headlineMedium: TextStyle(
-          fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.8),
+        fontSize: 28,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.8,
+      ),
       headlineSmall: TextStyle(
-          fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: -0.4),
+        fontSize: 22,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.4,
+      ),
       titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
       titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       titleSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),

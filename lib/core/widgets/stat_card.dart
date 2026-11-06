@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../app/theme/app_tokens.dart';
 import 'app_card.dart';
+import 'icon_badge.dart';
 
-/// Big number + unit + label. The core "data-focused" building block.
+/// Band-style metric tile: coloured icon bubble, label, big number + unit.
 class StatCard extends StatelessWidget {
   const StatCard({
     super.key,
@@ -12,6 +13,7 @@ class StatCard extends StatelessWidget {
     this.unit,
     this.caption,
     this.icon,
+    this.color = AppColors.accent,
     this.onTap,
   });
 
@@ -20,6 +22,9 @@ class StatCard extends StatelessWidget {
   final String? unit;
   final String? caption;
   final IconData? icon;
+
+  /// Metric colour (see [AppColors]); tints the icon bubble.
+  final Color color;
   final VoidCallback? onTap;
 
   @override
@@ -32,21 +37,26 @@ class StatCard extends StatelessWidget {
           Row(
             children: [
               if (icon != null) ...[
-                Icon(icon, size: 16, color: AppColors.textSecondary),
-                const SizedBox(width: AppSpacing.xs + 2),
+                IconBadge(icon: icon, color: color, size: 32),
+                const SizedBox(width: AppSpacing.sm),
               ],
               Expanded(
-                child: Text(label.toUpperCase(),
-                    style: AppText.overline, overflow: TextOverflow.ellipsis),
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.titleSmall,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
           Text.rich(
-            TextSpan(children: [
-              TextSpan(text: value, style: AppText.metricL),
-              if (unit != null) TextSpan(text: ' $unit', style: AppText.unit),
-            ]),
+            TextSpan(
+              children: [
+                TextSpan(text: value, style: AppText.metricL),
+                if (unit != null) TextSpan(text: ' $unit', style: AppText.unit),
+              ],
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -54,9 +64,7 @@ class StatCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.xs),
             Text(
               caption!,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
+              style: Theme.of(context).textTheme.bodySmall
                   ?.copyWith(color: AppColors.textSecondary),
             ),
           ],

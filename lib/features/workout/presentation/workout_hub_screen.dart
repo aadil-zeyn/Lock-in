@@ -21,10 +21,28 @@ class WorkoutHubScreen extends StatelessWidget {
           onPressed: () => showComingSoon(context, 'The workout engine'),
         ),
         const SizedBox(height: AppSpacing.md),
-        SecondaryButton(
-          label: 'Exercise library',
-          icon: Icons.menu_book_rounded,
-          onPressed: () => context.push(Routes.exercises),
+        Row(
+          children: [
+            Expanded(
+              child: _HubTile(
+                icon: Icons.menu_book_rounded,
+                color: AppColors.volume,
+                title: 'Exercises',
+                subtitle: 'Library & custom',
+                onTap: () => context.push(Routes.exercises),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: _HubTile(
+                icon: Icons.add_circle_outline_rounded,
+                color: AppColors.sets,
+                title: 'New exercise',
+                subtitle: 'Create your own',
+                onTap: () => context.push(Routes.newExercise),
+              ),
+            ),
+          ],
         ),
         SectionHeader(
           'Routines',
@@ -38,6 +56,43 @@ class WorkoutHubScreen extends StatelessWidget {
           message: 'Save a Push, Pull or Legs day and start it in one tap.',
         ),
       ],
+    );
+  }
+}
+
+class _HubTile extends StatelessWidget {
+  const _HubTile({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return AppCard(
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          IconBadge(icon: icon, color: color, size: 44),
+          const SizedBox(height: AppSpacing.md),
+          Text(title, style: text.titleMedium),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: text.bodySmall?.copyWith(color: AppColors.textSecondary),
+          ),
+        ],
+      ),
     );
   }
 }

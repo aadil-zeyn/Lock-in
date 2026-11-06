@@ -19,11 +19,39 @@ final thisWeekWorkoutsProvider = StreamProvider<List<Workout>>((ref) {
   final db = ref.watch(databaseProvider);
   final since = startOfWeek(DateTime.now());
   final query = db.select(db.workouts)
-    ..where((w) =>
-        w.status.equalsValue(WorkoutStatus.completed) &
-        w.startedAt.isBiggerOrEqualValue(since))
+    ..where(
+      (w) =>
+          w.status.equalsValue(WorkoutStatus.completed) &
+          w.startedAt.isBiggerOrEqualValue(since),
+    )
     ..orderBy([(w) => OrderingTerm.desc(w.startedAt)]);
   return query.watch();
+});
+
+/// Completed working sets (warm-ups excluded) in completed workouts this week.
+final thisWeekSetsProvider = StreamProvider<int>((ref) {
+  final db = ref.watch(databaseProvider);
+  final since = startOfWeek(DateTime.now());
+  final count = db.workoutSets.id.count();
+  final query =
+      db.selectOnly(db.workoutSets).join([
+          innerJoin(
+            db.workoutExercises,
+            db.workoutExercises.id.equalsExp(db.workoutSets.workoutExerciseId),
+          ),
+          innerJoin(
+            db.workouts,
+            db.workouts.id.equalsExp(db.workoutExercises.workoutId),
+          ),
+        ])
+        ..addColumns([count])
+        ..where(
+          db.workoutSets.isCompleted.equals(true) &
+              db.workoutSets.setType.equalsValue(SetType.warmup).not() &
+              db.workouts.status.equalsValue(WorkoutStatus.completed) &
+              db.workouts.startedAt.isBiggerOrEqualValue(since),
+        );
+  return query.map((row) => row.read(count) ?? 0).watchSingle();
 });
 
 final latestWorkoutProvider = StreamProvider<Workout?>((ref) {
@@ -36,8 +64,7 @@ final latestWorkoutProvider = StreamProvider<Workout?>((ref) {
 });
 
 /// Latest two body-weight entries (newest first) so we can show the change.
-final recentBodyWeightsProvider =
-    StreamProvider<List<BodyMeasurement>>((ref) {
+final recentBodyWeightsProvider = StreamProvider<List<BodyMeasurement>>((ref) {
   final db = ref.watch(databaseProvider);
   final query = db.select(db.bodyMeasurements)
     ..where((m) => m.measurementType.equalsValue(MeasurementType.bodyWeight))

@@ -22,8 +22,13 @@ class UserProfiles extends Table {
   RealColumn get heightCm => real().nullable()();
   TextColumn get weightUnit => textEnum<WeightUnit>()();
   TextColumn get lengthUnit => textEnum<LengthUnit>()();
-  IntColumn get restTimerSeconds =>
-      integer().withDefault(const Constant(90))();
+  IntColumn get restTimerSeconds => integer().withDefault(const Constant(90))();
+
+  // Weekly goals that drive the Home activity rings.
+  IntColumn get weeklyWorkoutGoal => integer().withDefault(const Constant(3))();
+  IntColumn get weeklyMinutesGoal =>
+      integer().withDefault(const Constant(180))();
+  IntColumn get weeklySetsGoal => integer().withDefault(const Constant(45))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -38,8 +43,7 @@ class Exercises extends Table {
   TextColumn get primaryMuscle => textEnum<MuscleGroup>()();
 
   /// Comma-separated [MuscleGroup] names, e.g. "triceps,shoulders".
-  TextColumn get secondaryMuscles =>
-      text().withDefault(const Constant(''))();
+  TextColumn get secondaryMuscles => text().withDefault(const Constant(''))();
   TextColumn get equipment => textEnum<Equipment>()();
   TextColumn get trackingType => textEnum<TrackingType>()();
   TextColumn get description => text().nullable()();
@@ -79,9 +83,11 @@ class Workouts extends Table {
 
   /// Which routine this was started from, if any. The workout never
   /// depends on the routine's current contents.
-  IntColumn get routineId => integer()
-      .nullable()
-      .references(Routines, #id, onDelete: KeyAction.setNull)();
+  IntColumn get routineId => integer().nullable().references(
+    Routines,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
   DateTimeColumn get startedAt => dateTime()();
   DateTimeColumn get completedAt => dateTime().nullable()();
   IntColumn get durationSeconds => integer().nullable()();
@@ -108,21 +114,26 @@ class WorkoutExercises extends Table {
 @TableIndex(name: 'idx_workout_sets_we', columns: {#workoutExerciseId})
 class WorkoutSets extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get workoutExerciseId => integer()
-      .references(WorkoutExercises, #id, onDelete: KeyAction.cascade)();
+  IntColumn get workoutExerciseId => integer().references(
+    WorkoutExercises,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
   IntColumn get setNumber => integer()();
   TextColumn get setType => textEnum<SetType>()();
   RealColumn get weightKg => real().nullable()();
   IntColumn get reps => integer().nullable()();
   IntColumn get durationSeconds => integer().nullable()();
-  BoolColumn get isCompleted =>
-      boolean().withDefault(const Constant(false))();
+  BoolColumn get isCompleted => boolean().withDefault(const Constant(false))();
   DateTimeColumn get completedAt => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-@TableIndex(name: 'idx_body_measurements_type_date', columns: {#measurementType, #recordedAt})
+@TableIndex(
+  name: 'idx_body_measurements_type_date',
+  columns: {#measurementType, #recordedAt},
+)
 class BodyMeasurements extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get measurementType => textEnum<MeasurementType>()();
@@ -138,49 +149,63 @@ class BodyMeasurements extends Table {
 // Database
 // ---------------------------------------------------------------------------
 
-@DriftDatabase(tables: [
-  UserProfiles,
-  Exercises,
-  Routines,
-  RoutineExercises,
-  Workouts,
-  WorkoutExercises,
-  WorkoutSets,
-  BodyMeasurements,
-])
+@DriftDatabase(
+  tables: [
+    UserProfiles,
+    Exercises,
+    Routines,
+    RoutineExercises,
+    Workouts,
+    WorkoutExercises,
+    WorkoutSets,
+    BodyMeasurements,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
-      : super(executor ?? driftDatabase(name: 'lock_in'));
+    : super(
+        executor ??
+            driftDatabase(
+              name: 'lock_in',
+              // Browser build: SQLite runs as WebAssembly and stores data in
+              // the browser (OPFS or IndexedDB). The files live in `web/` and
+              // must match the sqlite3 / drift package versions.
+              web: DriftWebOptions(
+                sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+                driftWorker: Uri.parse('drift_worker.js'),
+              ),
+            ),
+      );
 
   @override
   int get schemaVersion => 1;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (m) async {
-          await m.createAll();
+    onCreate: (m) async {
+      await m.createAll();
 
-          // At most one active workout at any time.
-          await customStatement(
-            "CREATE UNIQUE INDEX IF NOT EXISTS idx_one_active_workout "
-            "ON workouts(status) WHERE status = 'active'",
-          );
-
-          await batch((b) {
-            b.insert(
-              userProfiles,
-              UserProfilesCompanion.insert(
-                id: const Value(1),
-                weightUnit: WeightUnit.kg,
-                lengthUnit: LengthUnit.cm,
-              ),
-            );
-            b.insertAll(exercises, seedExercises());
-          });
-        },
-        beforeOpen: (details) async {
-          await customStatement('PRAGMA foreign_keys = ON');
-        },
-        // onUpgrade: add steps here when schemaVersion goes above 1.
+      // At most one active workout at any time.
+      await customStatement(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_one_active_workout "
+        "ON workouts(status) WHERE status = 'active'",
       );
+
+      await batch((b) {
+        b.insert(
+          userProfiles,
+          UserProfilesCompanion.insert(
+            id: const Value(1),
+            weightUnit: WeightUnit.kg,
+            lengthUnit: LengthUnit.cm,
+          ),
+        );
+        b.insertAll(exercises, seedExercises());
+      });
+    },
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON');
+    },
+    // onUpgrade: add steps here when schemaVersion goes above 1.
+  );
 }
