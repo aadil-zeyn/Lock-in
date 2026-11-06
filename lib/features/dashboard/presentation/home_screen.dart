@@ -8,6 +8,9 @@ import '../../../core/database/app_database.dart';
 import '../../../core/utils/date_format.dart';
 import '../../../core/utils/units.dart';
 import '../../../core/widgets/widgets.dart';
+import '../../body/presentation/log_weight_sheet.dart';
+import '../../health/data/health_providers.dart';
+import '../../health/data/health_service.dart';
 import '../../workout/presentation/workout_actions.dart';
 import '../data/dashboard_providers.dart';
 import 'weekly_activity_card.dart';
@@ -24,6 +27,8 @@ class HomeScreen extends ConsumerWidget {
     final sets = ref.watch(thisWeekSetsProvider).value ?? 0;
     final latest = ref.watch(latestWorkoutProvider).value;
     final weights = ref.watch(recentBodyWeightsProvider).value ?? const [];
+    // Pull new weigh-ins from Health Connect once per launch (no-op if off).
+    ref.watch(healthAutoSyncProvider);
 
     final name = profile?.name;
     final unit = profile?.weightUnit ?? WeightUnit.kg;
@@ -55,16 +60,7 @@ class HomeScreen extends ConsumerWidget {
                 child: _BodyWeightTile(entries: weights, unit: unit),
               ),
               const SizedBox(width: AppSpacing.md),
-              const Expanded(
-                child: StatCard(
-                  label: 'Records',
-                  value: '0',
-                  unit: 'PRs',
-                  caption: 'Beat a best to earn one',
-                  icon: Icons.emoji_events_rounded,
-                  color: AppColors.records,
-                ),
-              ),
+              const Expanded(child: _StepsTile()),
             ],
           ),
         ),
@@ -199,7 +195,7 @@ class _BodyWeightTile extends StatelessWidget {
         caption: 'Tap to log your weight',
         icon: Icons.monitor_weight_rounded,
         color: AppColors.body,
-        onTap: () => showComingSoon(context, 'Body tracking'),
+        onTap: () => showLogWeightSheet(context),
       );
     }
     final latest = kgToDisplay(entries.first.measuredValue, unit);
@@ -217,8 +213,51 @@ class _BodyWeightTile extends StatelessWidget {
       caption: caption,
       icon: Icons.monitor_weight_rounded,
       color: AppColors.body,
+      onTap: () => showLogWeightSheet(context),
     );
   }
+}
+
+/// Today's steps from Health Connect, or a prompt to connect it.
+class _StepsTile extends ConsumerWidget {
+  const _StepsTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final status = ref.watch(healthStatusProvider).value;
+    final week = ref.watch(weekStepsProvider).value;
+    void openSettings() => context.push(Routes.healthConnect);
+
+    if (status == null || !status.connected || week == null) {
+      final unavailable =
+          status != null && status.availability != HealthAvailability.available;
+      return StatCard(
+        label: 'Steps',
+        value: '—',
+        caption: unavailable
+            ? 'Needs Health Connect (Android)'
+            : 'Tap to connect Health Connect',
+        icon: Icons.directions_walk_rounded,
+        color: AppColors.steps,
+        onTap: openSettings,
+      );
+    }
+    final today = week.last;
+    final avg = week.reduce((a, b) => a + b) ~/ week.length;
+    return StatCard(
+      label: 'Steps',
+      value: _thousands(today),
+      caption: '7-day avg ${_thousands(avg)}',
+      icon: Icons.directions_walk_rounded,
+      color: AppColors.steps,
+      onTap: openSettings,
+    );
+  }
+
+  static String _thousands(int n) => n.toString().replaceAllMapped(
+    RegExp(r'(\d)(?=(\d{3})+$)'),
+    (m) => '${m[1]},',
+  );
 }
 
 class _LatestWorkoutCard extends StatelessWidget {

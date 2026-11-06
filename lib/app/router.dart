@@ -8,6 +8,7 @@ import '../features/dashboard/presentation/home_screen.dart';
 import '../features/exercises/presentation/exercise_details_screen.dart';
 import '../features/exercises/presentation/exercise_form_screen.dart';
 import '../features/exercises/presentation/exercise_library_screen.dart';
+import '../features/health/presentation/health_connect_screen.dart';
 import '../features/history/presentation/history_screen.dart';
 import '../features/history_import/presentation/import_history_screen.dart';
 import '../features/settings/presentation/profile_screen.dart';
@@ -33,6 +34,7 @@ abstract final class Routes {
   static String exerciseDetails(int id) => '/exercises/$id';
   static String editExercise(int id) => '/exercises/$id/edit';
   static const importHistory = '/import-history';
+  static const healthConnect = '/health-connect';
 
   /// The workout in progress (full screen, over the tabs).
   static const activeWorkout = '/session';
@@ -91,6 +93,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.importHistory,
         builder: (context, state) => const ImportHistoryScreen(),
+      ),
+      GoRoute(
+        path: Routes.healthConnect,
+        builder: (context, state) => const HealthConnectScreen(),
       ),
       GoRoute(
         path: Routes.activeWorkout,

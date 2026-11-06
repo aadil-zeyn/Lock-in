@@ -98,6 +98,12 @@ class ProfileScreen extends ConsumerWidget {
         _SettingsGroup(
           children: [
             _SettingsTile(
+              icon: Icons.favorite_border_rounded,
+              title: 'Health Connect',
+              value: 'Steps & weight',
+              onTap: () => context.push(Routes.healthConnect),
+            ),
+            _SettingsTile(
               icon: Icons.history_edu_rounded,
               title: 'Import history',
               onTap: () => context.push(Routes.importHistory),
