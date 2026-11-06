@@ -60,7 +60,15 @@ jobs:
             echo "::error::KEYSTORE_BASE64 secret is missing. See docs/UPDATES.md."
             exit 1
           fi
-          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/release.jks
+          # Secrets pasted in the browser often gain a trailing newline or
+          # spaces; strip them so "android⏎" still works as "android".
+          trim() { printf '%s' "$1" | tr -d '\r\n\t '; }
+          KEYSTORE_PASSWORD=$(trim "$KEYSTORE_PASSWORD")
+          KEY_ALIAS=$(trim "$KEY_ALIAS")
+          KEY_PASSWORD=$(trim "$KEY_PASSWORD")
+          trim "$KEYSTORE_BASE64" | base64 --decode > android/app/release.jks
+          # Size and checksum (not secret) to compare with the original file.
+          echo "::notice::Key file: $(wc -c < android/app/release.jks) bytes, sha256 $(sha256sum android/app/release.jks | cut -c1-16)…; password length ${#KEYSTORE_PASSWORD}, alias '${KEY_ALIAS}'"
           cat > android/key.properties <<EOF
           storeFile=release.jks
           storePassword=$KEYSTORE_PASSWORD
