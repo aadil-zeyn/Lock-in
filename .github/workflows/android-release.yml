@@ -1,6 +1,7 @@
 # Builds a signed APK on every push to main and publishes it as a GitHub
 # Release. On the phone, Obtainium watches the releases and installs
-# updates. See docs/UPDATES.md.
+# updates. See docs/UPDATES.md (secrets: KEYSTORE_BASE64, KEYSTORE_PASSWORD,
+# KEY_ALIAS, KEY_PASSWORD).
 name: Android release
 
 on:
