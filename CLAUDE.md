@@ -18,6 +18,7 @@ Full spec: `docs/PRD-v1.0.md` plus the amendments in `docs/PRD-v1.1-changes.md` 
 - Checks before finishing a task: `flutter analyze` and `flutter test`
 - Android release APK: `flutter build apk --release`
 - Web app: `flutter build web --release --no-web-resources-cdn` (bundles CanvasKit, no CDN). Drift on web needs `web/sqlite3.wasm` and `web/drift_worker.js` matching the `sqlite3` / `drift` versions in `pubspec.lock` — re-download both from their GitHub releases after upgrading those packages
+- Releases: every push to `main` touching the app runs `.github/workflows/android-release.yml` (analyze, test, signed APK, GitHub Release `v0.<run>.0`). The user installs updates with Obtainium (docs/UPDATES.md) — no USB needed. CI signs with the same debug keystore as the installed app (secret `KEYSTORE_BASE64`; public debug passwords as fallback). Never change the signing key without a backup/restore plan.
 - Roadmap: `docs/ROADMAP.md`. Showcase page: `website/index.html` (built from `website/template.html` with screenshots embedded)
 
 ## Structure
