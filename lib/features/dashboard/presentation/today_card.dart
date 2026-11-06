@@ -89,7 +89,10 @@ class TodayCard extends ConsumerWidget {
                     ? 0
                     : steps / (profile?.dailyStepsGoal ?? dailyStepsGoal),
                 color: AppColors.steps,
-                onTap: () => context.push(Routes.healthConnect),
+                // Step history lives on the Progress tab.
+                onTap: () => stepsConnected
+                    ? context.go(Routes.progress)
+                    : context.push(Routes.healthConnect),
               ),
               _TodayMetric(
                 value: _thousands(food.kcal),
