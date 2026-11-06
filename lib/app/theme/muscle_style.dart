@@ -56,6 +56,7 @@ extension TrackingTypeStyle on TrackingType {
     TrackingType.bodyweightReps => Icons.accessibility_new_rounded,
     TrackingType.assistedBodyweight => Icons.support_rounded,
     TrackingType.duration => Icons.timer_outlined,
+    TrackingType.bandReps => Icons.gesture_rounded,
   };
 
   /// One-line explanation shown in the create form.
@@ -65,5 +66,17 @@ extension TrackingTypeStyle on TrackingType {
       'Reps with your body weight, optional added weight',
     TrackingType.assistedBodyweight => 'Reps with machine or band assistance',
     TrackingType.duration => 'Log time held, e.g. plank',
+    TrackingType.bandReps => 'Pick the band (light → extra heavy) and reps',
+  };
+}
+
+extension BandLevelStyle on BandLevel {
+  /// Lighter bands read lighter; the label always goes with it.
+  Color get color => switch (this) {
+    BandLevel.extraLight => const Color(0xFF9FE7C4),
+    BandLevel.light => AppColors.sets,
+    BandLevel.medium => AppColors.volume,
+    BandLevel.heavy => AppColors.time,
+    BandLevel.extraHeavy => AppColors.streak,
   };
 }

@@ -143,5 +143,50 @@ List<ExercisesCompanion> seedExercises() {
       Equipment.other,
       tracking: TrackingType.bodyweightReps,
     ),
+
+    // Resistance bands (added in schema v2; also inserted on upgrade)
+    ...bandSeedExercises(),
+  ];
+}
+
+/// Band versions of common cable and free-weight movements.
+List<ExercisesCompanion> bandSeedExercises() {
+  ExercisesCompanion b(
+    String name,
+    MuscleGroup primary, [
+    List<MuscleGroup> secondary = const [],
+  ]) {
+    return ExercisesCompanion.insert(
+      name: name,
+      primaryMuscle: primary,
+      equipment: Equipment.band,
+      trackingType: TrackingType.bandReps,
+      secondaryMuscles: Value(secondary.map((m) => m.name).join(',')),
+    );
+  }
+
+  return [
+    b('Band Chest Press', MuscleGroup.chest, [
+      MuscleGroup.triceps,
+      MuscleGroup.shoulders,
+    ]),
+    b('Band Chest Fly', MuscleGroup.chest),
+    b('Band Row', MuscleGroup.back, [MuscleGroup.biceps]),
+    b('Band Lat Pulldown', MuscleGroup.back, [MuscleGroup.biceps]),
+    b('Band Pull-Apart', MuscleGroup.shoulders, [MuscleGroup.back]),
+    b('Band Face Pull', MuscleGroup.shoulders, [MuscleGroup.back]),
+    b('Band Lateral Raise', MuscleGroup.shoulders),
+    b('Band Overhead Press', MuscleGroup.shoulders, [MuscleGroup.triceps]),
+    b('Band Bicep Curl', MuscleGroup.biceps, [MuscleGroup.forearms]),
+    b('Band Tricep Pushdown', MuscleGroup.triceps),
+    b('Band Squat', MuscleGroup.quadriceps, [MuscleGroup.glutes]),
+    b('Band Good Morning', MuscleGroup.hamstrings, [
+      MuscleGroup.glutes,
+      MuscleGroup.back,
+    ]),
+    b('Banded Glute Bridge', MuscleGroup.glutes, [MuscleGroup.hamstrings]),
+    b('Band Glute Kickback', MuscleGroup.glutes),
+    b('Band Pallof Press', MuscleGroup.core, [MuscleGroup.abs]),
+    b('Band Woodchop', MuscleGroup.core, [MuscleGroup.abs]),
   ];
 }

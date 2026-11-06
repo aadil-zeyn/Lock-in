@@ -3194,6 +3194,15 @@ class $WorkoutSetsTable extends WorkoutSets
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  @override
+  late final GeneratedColumnWithTypeConverter<BandLevel?, String> bandLevel =
+      GeneratedColumn<String>(
+        'band_level',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<BandLevel?>($WorkoutSetsTable.$converterbandLeveln);
   static const VerificationMeta _isCompletedMeta = const VerificationMeta(
     'isCompleted',
   );
@@ -3253,6 +3262,7 @@ class $WorkoutSetsTable extends WorkoutSets
     weightKg,
     reps,
     durationSeconds,
+    bandLevel,
     isCompleted,
     completedAt,
     createdAt,
@@ -3382,6 +3392,12 @@ class $WorkoutSetsTable extends WorkoutSets
         DriftSqlType.int,
         data['${effectivePrefix}duration_seconds'],
       ),
+      bandLevel: $WorkoutSetsTable.$converterbandLeveln.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}band_level'],
+        ),
+      ),
       isCompleted: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_completed'],
@@ -3408,6 +3424,10 @@ class $WorkoutSetsTable extends WorkoutSets
 
   static JsonTypeConverter2<SetType, String, String> $convertersetType =
       const EnumNameConverter<SetType>(SetType.values);
+  static JsonTypeConverter2<BandLevel, String, String> $converterbandLevel =
+      const EnumNameConverter<BandLevel>(BandLevel.values);
+  static JsonTypeConverter2<BandLevel?, String?, String?> $converterbandLeveln =
+      JsonTypeConverter2.asNullable($converterbandLevel);
 }
 
 class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
@@ -3418,6 +3438,9 @@ class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
   final double? weightKg;
   final int? reps;
   final int? durationSeconds;
+
+  /// Band used, for `TrackingType.bandReps` exercises (schema v2).
+  final BandLevel? bandLevel;
   final bool isCompleted;
   final DateTime? completedAt;
   final DateTime createdAt;
@@ -3430,6 +3453,7 @@ class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
     this.weightKg,
     this.reps,
     this.durationSeconds,
+    this.bandLevel,
     required this.isCompleted,
     this.completedAt,
     required this.createdAt,
@@ -3455,6 +3479,11 @@ class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
     if (!nullToAbsent || durationSeconds != null) {
       map['duration_seconds'] = Variable<int>(durationSeconds);
     }
+    if (!nullToAbsent || bandLevel != null) {
+      map['band_level'] = Variable<String>(
+        $WorkoutSetsTable.$converterbandLeveln.toSql(bandLevel),
+      );
+    }
     map['is_completed'] = Variable<bool>(isCompleted);
     if (!nullToAbsent || completedAt != null) {
       map['completed_at'] = Variable<DateTime>(completedAt);
@@ -3477,6 +3506,9 @@ class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
       durationSeconds: durationSeconds == null && nullToAbsent
           ? const Value.absent()
           : Value(durationSeconds),
+      bandLevel: bandLevel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bandLevel),
       isCompleted: Value(isCompleted),
       completedAt: completedAt == null && nullToAbsent
           ? const Value.absent()
@@ -3501,6 +3533,9 @@ class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
       weightKg: serializer.fromJson<double?>(json['weightKg']),
       reps: serializer.fromJson<int?>(json['reps']),
       durationSeconds: serializer.fromJson<int?>(json['durationSeconds']),
+      bandLevel: $WorkoutSetsTable.$converterbandLeveln.fromJson(
+        serializer.fromJson<String?>(json['bandLevel']),
+      ),
       isCompleted: serializer.fromJson<bool>(json['isCompleted']),
       completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -3520,6 +3555,9 @@ class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
       'weightKg': serializer.toJson<double?>(weightKg),
       'reps': serializer.toJson<int?>(reps),
       'durationSeconds': serializer.toJson<int?>(durationSeconds),
+      'bandLevel': serializer.toJson<String?>(
+        $WorkoutSetsTable.$converterbandLeveln.toJson(bandLevel),
+      ),
       'isCompleted': serializer.toJson<bool>(isCompleted),
       'completedAt': serializer.toJson<DateTime?>(completedAt),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -3535,6 +3573,7 @@ class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
     Value<double?> weightKg = const Value.absent(),
     Value<int?> reps = const Value.absent(),
     Value<int?> durationSeconds = const Value.absent(),
+    Value<BandLevel?> bandLevel = const Value.absent(),
     bool? isCompleted,
     Value<DateTime?> completedAt = const Value.absent(),
     DateTime? createdAt,
@@ -3549,6 +3588,7 @@ class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
     durationSeconds: durationSeconds.present
         ? durationSeconds.value
         : this.durationSeconds,
+    bandLevel: bandLevel.present ? bandLevel.value : this.bandLevel,
     isCompleted: isCompleted ?? this.isCompleted,
     completedAt: completedAt.present ? completedAt.value : this.completedAt,
     createdAt: createdAt ?? this.createdAt,
@@ -3567,6 +3607,7 @@ class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
       durationSeconds: data.durationSeconds.present
           ? data.durationSeconds.value
           : this.durationSeconds,
+      bandLevel: data.bandLevel.present ? data.bandLevel.value : this.bandLevel,
       isCompleted: data.isCompleted.present
           ? data.isCompleted.value
           : this.isCompleted,
@@ -3588,6 +3629,7 @@ class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
           ..write('weightKg: $weightKg, ')
           ..write('reps: $reps, ')
           ..write('durationSeconds: $durationSeconds, ')
+          ..write('bandLevel: $bandLevel, ')
           ..write('isCompleted: $isCompleted, ')
           ..write('completedAt: $completedAt, ')
           ..write('createdAt: $createdAt, ')
@@ -3605,6 +3647,7 @@ class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
     weightKg,
     reps,
     durationSeconds,
+    bandLevel,
     isCompleted,
     completedAt,
     createdAt,
@@ -3621,6 +3664,7 @@ class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
           other.weightKg == this.weightKg &&
           other.reps == this.reps &&
           other.durationSeconds == this.durationSeconds &&
+          other.bandLevel == this.bandLevel &&
           other.isCompleted == this.isCompleted &&
           other.completedAt == this.completedAt &&
           other.createdAt == this.createdAt &&
@@ -3635,6 +3679,7 @@ class WorkoutSetsCompanion extends UpdateCompanion<WorkoutSet> {
   final Value<double?> weightKg;
   final Value<int?> reps;
   final Value<int?> durationSeconds;
+  final Value<BandLevel?> bandLevel;
   final Value<bool> isCompleted;
   final Value<DateTime?> completedAt;
   final Value<DateTime> createdAt;
@@ -3647,6 +3692,7 @@ class WorkoutSetsCompanion extends UpdateCompanion<WorkoutSet> {
     this.weightKg = const Value.absent(),
     this.reps = const Value.absent(),
     this.durationSeconds = const Value.absent(),
+    this.bandLevel = const Value.absent(),
     this.isCompleted = const Value.absent(),
     this.completedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -3660,6 +3706,7 @@ class WorkoutSetsCompanion extends UpdateCompanion<WorkoutSet> {
     this.weightKg = const Value.absent(),
     this.reps = const Value.absent(),
     this.durationSeconds = const Value.absent(),
+    this.bandLevel = const Value.absent(),
     this.isCompleted = const Value.absent(),
     this.completedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -3675,6 +3722,7 @@ class WorkoutSetsCompanion extends UpdateCompanion<WorkoutSet> {
     Expression<double>? weightKg,
     Expression<int>? reps,
     Expression<int>? durationSeconds,
+    Expression<String>? bandLevel,
     Expression<bool>? isCompleted,
     Expression<DateTime>? completedAt,
     Expression<DateTime>? createdAt,
@@ -3688,6 +3736,7 @@ class WorkoutSetsCompanion extends UpdateCompanion<WorkoutSet> {
       if (weightKg != null) 'weight_kg': weightKg,
       if (reps != null) 'reps': reps,
       if (durationSeconds != null) 'duration_seconds': durationSeconds,
+      if (bandLevel != null) 'band_level': bandLevel,
       if (isCompleted != null) 'is_completed': isCompleted,
       if (completedAt != null) 'completed_at': completedAt,
       if (createdAt != null) 'created_at': createdAt,
@@ -3703,6 +3752,7 @@ class WorkoutSetsCompanion extends UpdateCompanion<WorkoutSet> {
     Value<double?>? weightKg,
     Value<int?>? reps,
     Value<int?>? durationSeconds,
+    Value<BandLevel?>? bandLevel,
     Value<bool>? isCompleted,
     Value<DateTime?>? completedAt,
     Value<DateTime>? createdAt,
@@ -3716,6 +3766,7 @@ class WorkoutSetsCompanion extends UpdateCompanion<WorkoutSet> {
       weightKg: weightKg ?? this.weightKg,
       reps: reps ?? this.reps,
       durationSeconds: durationSeconds ?? this.durationSeconds,
+      bandLevel: bandLevel ?? this.bandLevel,
       isCompleted: isCompleted ?? this.isCompleted,
       completedAt: completedAt ?? this.completedAt,
       createdAt: createdAt ?? this.createdAt,
@@ -3749,6 +3800,11 @@ class WorkoutSetsCompanion extends UpdateCompanion<WorkoutSet> {
     if (durationSeconds.present) {
       map['duration_seconds'] = Variable<int>(durationSeconds.value);
     }
+    if (bandLevel.present) {
+      map['band_level'] = Variable<String>(
+        $WorkoutSetsTable.$converterbandLeveln.toSql(bandLevel.value),
+      );
+    }
     if (isCompleted.present) {
       map['is_completed'] = Variable<bool>(isCompleted.value);
     }
@@ -3774,6 +3830,7 @@ class WorkoutSetsCompanion extends UpdateCompanion<WorkoutSet> {
           ..write('weightKg: $weightKg, ')
           ..write('reps: $reps, ')
           ..write('durationSeconds: $durationSeconds, ')
+          ..write('bandLevel: $bandLevel, ')
           ..write('isCompleted: $isCompleted, ')
           ..write('completedAt: $completedAt, ')
           ..write('createdAt: $createdAt, ')
@@ -6999,6 +7056,7 @@ typedef $$WorkoutSetsTableCreateCompanionBuilder =
       Value<double?> weightKg,
       Value<int?> reps,
       Value<int?> durationSeconds,
+      Value<BandLevel?> bandLevel,
       Value<bool> isCompleted,
       Value<DateTime?> completedAt,
       Value<DateTime> createdAt,
@@ -7013,6 +7071,7 @@ typedef $$WorkoutSetsTableUpdateCompanionBuilder =
       Value<double?> weightKg,
       Value<int?> reps,
       Value<int?> durationSeconds,
+      Value<BandLevel?> bandLevel,
       Value<bool> isCompleted,
       Value<DateTime?> completedAt,
       Value<DateTime> createdAt,
@@ -7081,6 +7140,12 @@ class $$WorkoutSetsTableFilterComposer
     column: $table.durationSeconds,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnWithTypeConverterFilters<BandLevel?, BandLevel, String> get bandLevel =>
+      $composableBuilder(
+        column: $table.bandLevel,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
 
   ColumnFilters<bool> get isCompleted => $composableBuilder(
     column: $table.isCompleted,
@@ -7165,6 +7230,11 @@ class $$WorkoutSetsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get bandLevel => $composableBuilder(
+    column: $table.bandLevel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isCompleted => $composableBuilder(
     column: $table.isCompleted,
     builder: (column) => ColumnOrderings(column),
@@ -7237,6 +7307,9 @@ class $$WorkoutSetsTableAnnotationComposer
     column: $table.durationSeconds,
     builder: (column) => column,
   );
+
+  GeneratedColumnWithTypeConverter<BandLevel?, String> get bandLevel =>
+      $composableBuilder(column: $table.bandLevel, builder: (column) => column);
 
   GeneratedColumn<bool> get isCompleted => $composableBuilder(
     column: $table.isCompleted,
@@ -7313,6 +7386,7 @@ class $$WorkoutSetsTableTableManager
                 Value<double?> weightKg = const Value.absent(),
                 Value<int?> reps = const Value.absent(),
                 Value<int?> durationSeconds = const Value.absent(),
+                Value<BandLevel?> bandLevel = const Value.absent(),
                 Value<bool> isCompleted = const Value.absent(),
                 Value<DateTime?> completedAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -7325,6 +7399,7 @@ class $$WorkoutSetsTableTableManager
                 weightKg: weightKg,
                 reps: reps,
                 durationSeconds: durationSeconds,
+                bandLevel: bandLevel,
                 isCompleted: isCompleted,
                 completedAt: completedAt,
                 createdAt: createdAt,
@@ -7339,6 +7414,7 @@ class $$WorkoutSetsTableTableManager
                 Value<double?> weightKg = const Value.absent(),
                 Value<int?> reps = const Value.absent(),
                 Value<int?> durationSeconds = const Value.absent(),
+                Value<BandLevel?> bandLevel = const Value.absent(),
                 Value<bool> isCompleted = const Value.absent(),
                 Value<DateTime?> completedAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -7351,6 +7427,7 @@ class $$WorkoutSetsTableTableManager
                 weightKg: weightKg,
                 reps: reps,
                 durationSeconds: durationSeconds,
+                bandLevel: bandLevel,
                 isCompleted: isCompleted,
                 completedAt: completedAt,
                 createdAt: createdAt,

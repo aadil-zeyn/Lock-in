@@ -37,10 +37,36 @@ enum TrackingType {
   weightReps('Weight × reps'),
   bodyweightReps('Bodyweight reps'),
   assistedBodyweight('Assisted bodyweight'),
-  duration('Duration');
+  duration('Duration'),
+
+  /// Resistance band: each set records the band used and the reps.
+  /// Bands have no reliable kg value, so they're left out of volume.
+  bandReps('Band × reps');
 
   const TrackingType(this.label);
   final String label;
+}
+
+/// Resistance band strength, lightest first. Colours differ by brand,
+/// so the app names levels rather than colours.
+enum BandLevel {
+  extraLight('Extra light'),
+  light('Light'),
+  medium('Medium'),
+  heavy('Heavy'),
+  extraHeavy('Extra heavy');
+
+  const BandLevel(this.label);
+  final String label;
+
+  /// Short label for compact set rows.
+  String get short => switch (this) {
+    BandLevel.extraLight => 'XL',
+    BandLevel.light => 'L',
+    BandLevel.medium => 'M',
+    BandLevel.heavy => 'H',
+    BandLevel.extraHeavy => 'XH',
+  };
 }
 
 enum SetType {

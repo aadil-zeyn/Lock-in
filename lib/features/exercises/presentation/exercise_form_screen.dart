@@ -120,9 +120,11 @@ class _ExerciseFormState extends ConsumerState<_ExerciseForm> {
       _equipment = eq;
       // Sensible default the user can still override.
       if (!_trackingTouched) {
-        _tracking = eq == Equipment.bodyweight
-            ? TrackingType.bodyweightReps
-            : TrackingType.weightReps;
+        _tracking = switch (eq) {
+          Equipment.bodyweight => TrackingType.bodyweightReps,
+          Equipment.band => TrackingType.bandReps,
+          _ => TrackingType.weightReps,
+        };
       }
     });
   }

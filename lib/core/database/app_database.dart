@@ -124,6 +124,9 @@ class WorkoutSets extends Table {
   RealColumn get weightKg => real().nullable()();
   IntColumn get reps => integer().nullable()();
   IntColumn get durationSeconds => integer().nullable()();
+
+  /// Band used, for `TrackingType.bandReps` exercises (schema v2).
+  TextColumn get bandLevel => textEnum<BandLevel>().nullable()();
   BoolColumn get isCompleted => boolean().withDefault(const Constant(false))();
   DateTimeColumn get completedAt => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -177,8 +180,11 @@ class AppDatabase extends _$AppDatabase {
             ),
       );
 
+  /// v1: initial schema. v2: band level on sets + band exercises.
+  /// The app is installed on a real phone now: every schema change needs
+  /// a step in `onUpgrade` and a test in `test/migration_test.dart`.
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -203,9 +209,27 @@ class AppDatabase extends _$AppDatabase {
         b.insertAll(exercises, seedExercises());
       });
     },
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(workoutSets, workoutSets.bandLevel);
+        await _insertMissing(bandSeedExercises());
+      }
+    },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
     },
-    // onUpgrade: add steps here when schemaVersion goes above 1.
   );
+
+  /// Adds seed exercises whose name isn't in the library yet, so an
+  /// upgrade never duplicates something the user already created.
+  Future<void> _insertMissing(List<ExercisesCompanion> seeds) async {
+    final existing = (await select(
+      exercises,
+    ).get()).map((e) => e.name.toLowerCase()).toSet();
+    final fresh = seeds
+        .where((s) => !existing.contains(s.name.value.toLowerCase()))
+        .toList();
+    if (fresh.isEmpty) return;
+    await batch((b) => b.insertAll(exercises, fresh));
+  }
 }
