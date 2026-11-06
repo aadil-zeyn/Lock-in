@@ -7,6 +7,8 @@ import '../../../app/theme/app_tokens.dart';
 import '../../../app/theme/muscle_style.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/widgets/widgets.dart';
+import '../../dashboard/data/dashboard_providers.dart';
+import '../../statistics/presentation/progress_screen.dart';
 import '../data/exercise_providers.dart';
 import '../data/exercise_repository.dart';
 
@@ -34,6 +36,8 @@ class ExerciseDetailsScreen extends ConsumerWidget {
     }
 
     final usage = ref.watch(exerciseUsageProvider(exerciseId)).value ?? 0;
+    final unit =
+        ref.watch(userProfileProvider).value?.weightUnit ?? WeightUnit.kg;
     final secondary = exercise.secondaryMuscleList;
     final color = exercise.primaryMuscle.color;
     final text = Theme.of(context).textTheme;
@@ -187,41 +191,28 @@ class ExerciseDetailsScreen extends ConsumerWidget {
             AppCard(child: Text(exercise.description!, style: text.bodyLarge)),
           ],
           const SectionHeader('Performance'),
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Expanded(
-                  child: StatCard(
-                    label: 'Best',
-                    value: '—',
-                    icon: Icons.emoji_events_rounded,
-                    color: AppColors.records,
-                    caption: 'No sets yet',
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: StatCard(
-                    label: 'Workouts',
-                    value: '$usage',
-                    icon: Icons.local_fire_department_rounded,
-                    color: AppColors.workouts,
-                    caption: usage == 0 ? 'Not used yet' : 'Sessions logged',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (usage == 0) ...[
-            const SizedBox(height: AppSpacing.md),
+          if (usage == 0)
             const EmptyState(
               compact: true,
               icon: Icons.show_chart_rounded,
               title: 'No history yet',
               message:
-                  'Log it in a workout to see your best, most recent sets '
-                  'and progress chart here.',
+                  'Log it in a workout to see your best sets and progress '
+                  'chart here.',
+            )
+          else ...[
+            ExerciseProgressCard(
+              exercise: exercise,
+              unit: unit,
+              linkToDetails: false,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            StatCard(
+              label: 'Workouts',
+              value: '$usage',
+              icon: Icons.local_fire_department_rounded,
+              color: AppColors.workouts,
+              caption: 'Sessions with this exercise',
             ),
           ],
         ],

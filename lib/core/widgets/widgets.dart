@@ -4,6 +4,7 @@ library;
 export 'activity_rings.dart';
 export 'app_buttons.dart';
 export 'app_card.dart';
+export 'charts.dart';
 export 'empty_state.dart';
 export 'icon_badge.dart';
 export 'muscle_map.dart';
