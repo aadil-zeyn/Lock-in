@@ -12,10 +12,14 @@ class HealthStatus {
     required this.availability,
     required this.connected,
     required this.fullHistory,
+    this.canWriteWeight = false,
   });
   final HealthAvailability availability;
   final bool connected;
   final bool fullHistory;
+
+  /// Weights logged in Lock-in are saved to Health Connect only if true.
+  final bool canWriteWeight;
 }
 
 /// Re-read with `ref.invalidate(healthStatusProvider)` after connecting.
@@ -34,6 +38,7 @@ final healthStatusProvider = FutureProvider<HealthStatus>((ref) async {
     availability: availability,
     connected: connected,
     fullHistory: connected && await h.hasFullHistory(),
+    canWriteWeight: connected && await h.canWriteWeight(),
   );
 });
 

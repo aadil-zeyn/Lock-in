@@ -39,19 +39,28 @@ class _HealthConnect implements HealthService {
   @override
   Future<bool> connect() async {
     await _ready();
-    return _health.requestAuthorization(_types, permissions: _access);
+    await _health.requestAuthorization(_types, permissions: _access);
+    return isConnected();
   }
 
-  @override
-  Future<bool> isConnected() async {
+  Future<bool> _has(HealthDataType type, HealthDataAccess access) async {
     try {
       await _ready();
-      return await _health.hasPermissions(_types, permissions: _access) ??
+      return await _health.hasPermissions([type], permissions: [access]) ??
           false;
     } catch (_) {
       return false;
     }
   }
+
+  @override
+  Future<bool> isConnected() async =>
+      await _has(HealthDataType.STEPS, HealthDataAccess.READ) ||
+      await _has(HealthDataType.WEIGHT, HealthDataAccess.READ);
+
+  @override
+  Future<bool> canWriteWeight() =>
+      _has(HealthDataType.WEIGHT, HealthDataAccess.READ_WRITE);
 
   @override
   Future<bool> hasFullHistory() async {

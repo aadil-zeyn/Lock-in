@@ -98,7 +98,7 @@ class _LogWeightSheetState extends ConsumerState<_LogWeightSheet> {
     await ref.read(bodyRepositoryProvider).logWeight(kg, _date);
     // Share it with Health Connect when connected; never block on it.
     final status = ref.read(healthStatusProvider).value;
-    if (status?.connected ?? false) {
+    if (status?.canWriteWeight ?? false) {
       try {
         await ref.read(healthServiceProvider).writeWeight(kg, _date);
       } catch (_) {}
@@ -112,7 +112,8 @@ class _LogWeightSheetState extends ConsumerState<_LogWeightSheet> {
     final unit =
         ref.watch(userProfileProvider).value?.weightUnit ?? WeightUnit.kg;
     final text = Theme.of(context).textTheme;
-    final connected = ref.watch(healthStatusProvider).value?.connected ?? false;
+    final connected =
+        ref.watch(healthStatusProvider).value?.canWriteWeight ?? false;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(

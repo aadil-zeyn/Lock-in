@@ -25,8 +25,12 @@ abstract class HealthService {
   /// Asks the user for steps (read) and weight (read + write).
   Future<bool> connect();
 
-  /// True when steps and weight access are both granted.
+  /// True when reading steps or weight is allowed. Writing weight is
+  /// optional — people often allow reading only.
   Future<bool> isConnected();
+
+  /// Whether weights logged in Lock-in may be saved to Health Connect.
+  Future<bool> canWriteWeight();
 
   /// Separate Android permission for data older than 30 days.
   Future<bool> hasFullHistory();
