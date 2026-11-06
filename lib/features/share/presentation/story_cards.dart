@@ -699,6 +699,52 @@ class DayStoryCard extends StatelessWidget {
           value: d.workoutName ?? 'rest day',
           color: AppColors.workouts,
         ),
+        if (d.exercises.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(left: 38, bottom: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final e in d.exercises.take(5))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 3),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            e.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          e.summary,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (d.exercises.length > 5)
+                  Text(
+                    '+ ${d.exercises.length - 5} more',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textTertiary,
+                    ),
+                  ),
+              ],
+            ),
+          ),
         _Tick(
           done: d.proteinOk,
           label: 'Protein',
