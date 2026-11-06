@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,7 +12,11 @@ import '../features/history/presentation/history_screen.dart';
 import '../features/history_import/presentation/import_history_screen.dart';
 import '../features/settings/presentation/profile_screen.dart';
 import '../features/statistics/presentation/progress_screen.dart';
+import '../features/dashboard/data/dashboard_providers.dart';
+import '../features/workout/presentation/active_workout_screen.dart';
+import '../features/workout/presentation/workout_actions.dart';
 import '../features/workout/presentation/workout_hub_screen.dart';
+import '../features/workout/presentation/workout_summary_screen.dart';
 import 'theme/app_tokens.dart';
 
 abstract final class Routes {
@@ -27,6 +33,11 @@ abstract final class Routes {
   static String exerciseDetails(int id) => '/exercises/$id';
   static String editExercise(int id) => '/exercises/$id/edit';
   static const importHistory = '/import-history';
+
+  /// The workout in progress (full screen, over the tabs).
+  static const activeWorkout = '/session';
+  static const pickExercises = '/session/add';
+  static String workoutSummary(int id) => '/session/summary/$id';
 }
 
 int? _idParam(GoRouterState state) =>
@@ -81,6 +92,22 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: Routes.importHistory,
         builder: (context, state) => const ImportHistoryScreen(),
       ),
+      GoRoute(
+        path: Routes.activeWorkout,
+        builder: (context, state) => const ActiveWorkoutScreen(),
+        routes: [
+          GoRoute(
+            path: 'add',
+            builder: (context, state) =>
+                const ExerciseLibraryScreen(pickMode: true),
+          ),
+          GoRoute(
+            path: 'summary/:id',
+            builder: (context, state) =>
+                WorkoutSummaryScreen(workoutId: _idParam(state) ?? -1),
+          ),
+        ],
+      ),
     ],
   );
 });
@@ -130,13 +157,101 @@ class AppShell extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: navigationShell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
-        destinations: _destinations,
-        onDestinationSelected: (index) => navigationShell.goBranch(
-          index,
-          // Tapping the current tab again returns it to its root.
-          initialLocation: index == navigationShell.currentIndex,
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const _ActiveWorkoutBar(),
+          NavigationBar(
+            selectedIndex: navigationShell.currentIndex,
+            destinations: _destinations,
+            onDestinationSelected: (index) => navigationShell.goBranch(
+              index,
+              // Tapping the current tab again returns it to its root.
+              initialLocation: index == navigationShell.currentIndex,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Mini bar above the tabs while a workout is in progress (PRD v1.1 §4):
+/// name + live elapsed time; tap to reopen.
+class _ActiveWorkoutBar extends ConsumerStatefulWidget {
+  const _ActiveWorkoutBar();
+
+  @override
+  ConsumerState<_ActiveWorkoutBar> createState() => _ActiveWorkoutBarState();
+}
+
+class _ActiveWorkoutBarState extends ConsumerState<_ActiveWorkoutBar> {
+  Timer? _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    _tick = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (ref.read(activeWorkoutProvider).value != null) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final active = ref.watch(activeWorkoutProvider).value;
+    if (active == null) return const SizedBox.shrink();
+    final elapsed = DateTime.now().difference(active.startedAt);
+    return Material(
+      color: AppColors.surfaceHigh,
+      child: InkWell(
+        onTap: () => context.push(Routes.activeWorkout),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.page,
+            vertical: AppSpacing.md,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: const BoxDecoration(
+                  color: AppColors.accent,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Text(
+                  active.name,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+              ),
+              Text(
+                formatClock(elapsed),
+                style: AppText.metricM.copyWith(
+                  fontSize: 17,
+                  color: AppColors.time,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              const Text(
+                'Resume',
+                style: TextStyle(
+                  color: AppColors.accent,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: AppColors.accent),
+            ],
+          ),
         ),
       ),
     );

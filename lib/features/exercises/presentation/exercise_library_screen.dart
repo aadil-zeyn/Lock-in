@@ -12,9 +12,17 @@ import '../data/exercise_providers.dart';
 /// Searchable exercise library. With [archived] it lists archived
 /// exercises instead, so they can be opened and restored.
 class ExerciseLibraryScreen extends ConsumerStatefulWidget {
-  const ExerciseLibraryScreen({super.key, this.archived = false});
+  const ExerciseLibraryScreen({
+    super.key,
+    this.archived = false,
+    this.pickMode = false,
+  });
 
   final bool archived;
+
+  /// Multi-select for adding to a workout: tiles toggle instead of opening
+  /// details, and the screen pops with the chosen exercise ids in order.
+  final bool pickMode;
 
   @override
   ConsumerState<ExerciseLibraryScreen> createState() =>
@@ -25,6 +33,7 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
   String _query = '';
   MuscleGroup? _muscle;
   Equipment? _equipment;
+  final _picked = <int>{}; // insertion-ordered
 
   bool get _filtered =>
       _query.trim().isNotEmpty || _muscle != null || _equipment != null;
@@ -43,9 +52,15 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(archived ? 'Archived exercises' : 'Exercise library'),
+        title: Text(
+          widget.pickMode
+              ? 'Add exercises'
+              : archived
+              ? 'Archived exercises'
+              : 'Exercise library',
+        ),
         actions: [
-          if (!archived)
+          if (!archived && !widget.pickMode)
             PopupMenuButton<String>(
               tooltip: 'More',
               onSelected: (_) => context.push(Routes.archivedExercises),
@@ -58,7 +73,20 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
             ),
         ],
       ),
-      floatingActionButton: archived
+      floatingActionButton: widget.pickMode
+          ? (_picked.isEmpty
+                ? null
+                : FloatingActionButton.extended(
+                    onPressed: () => context.pop(_picked.toList()),
+                    backgroundColor: AppColors.accent,
+                    foregroundColor: AppColors.onAccent,
+                    icon: const Icon(Icons.check_rounded),
+                    label: Text(
+                      'Add ${_picked.length}',
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ))
+          : archived
           ? null
           : FloatingActionButton.extended(
               onPressed: () => context.push(Routes.newExercise),
@@ -178,7 +206,17 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                         ),
                       );
                     }
-                    return ExerciseTile(exercise: list[i - 1]);
+                    final e = list[i - 1];
+                    if (!widget.pickMode) return ExerciseTile(exercise: e);
+                    final selected = _picked.contains(e.id);
+                    return ExerciseTile(
+                      exercise: e,
+                      selected: selected,
+                      onTap: () => setState(
+                        () =>
+                            selected ? _picked.remove(e.id) : _picked.add(e.id),
+                      ),
+                    );
                   },
                 );
               },
@@ -214,19 +252,34 @@ class _ChipRow extends StatelessWidget {
 
 /// One row in the library: muscle badge, name, muscle · equipment.
 class ExerciseTile extends StatelessWidget {
-  const ExerciseTile({super.key, required this.exercise});
+  const ExerciseTile({
+    super.key,
+    required this.exercise,
+    this.selected,
+    this.onTap,
+  });
   final Exercise exercise;
+
+  /// Non-null in pick mode: shows a tick box instead of the chevron.
+  final bool? selected;
+
+  /// Defaults to opening the exercise's details.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final muscle = exercise.primaryMuscle;
+    final picked = selected ?? false;
     return AppCard(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
         vertical: AppSpacing.md,
       ),
-      onTap: () => context.push(Routes.exerciseDetails(exercise.id)),
+      color: picked
+          ? AppColors.accent.withValues(alpha: 0.12)
+          : AppColors.surface,
+      onTap: onTap ?? () => context.push(Routes.exerciseDetails(exercise.id)),
       child: Row(
         children: [
           IconBadge(
@@ -265,10 +318,24 @@ class ExerciseTile extends StatelessWidget {
             ),
           ),
           if (exercise.isCustom) const _Tag('CUSTOM'),
-          const Icon(
-            Icons.chevron_right_rounded,
-            color: AppColors.textTertiary,
-          ),
+          if (selected == null)
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textTertiary,
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.only(left: AppSpacing.sm),
+              child: Semantics(
+                checked: picked,
+                child: Icon(
+                  picked
+                      ? Icons.check_circle_rounded
+                      : Icons.radio_button_unchecked_rounded,
+                  color: picked ? AppColors.accent : AppColors.textTertiary,
+                ),
+              ),
+            ),
         ],
       ),
     );

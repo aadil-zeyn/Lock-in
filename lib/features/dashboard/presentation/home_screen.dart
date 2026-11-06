@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../app/router.dart';
 import '../../../app/theme/app_tokens.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/utils/date_format.dart';
 import '../../../core/utils/units.dart';
 import '../../../core/widgets/widgets.dart';
+import '../../workout/presentation/workout_actions.dart';
 import '../data/dashboard_providers.dart';
 import 'weekly_activity_card.dart';
 
@@ -110,12 +113,12 @@ class _Avatar extends StatelessWidget {
   }
 }
 
-class _StartWorkoutCard extends StatelessWidget {
+class _StartWorkoutCard extends ConsumerWidget {
   const _StartWorkoutCard({required this.active});
   final Workout? active;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final resuming = active != null;
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -127,10 +130,7 @@ class _StartWorkoutCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.card),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () => showComingSoon(
-            context,
-            resuming ? 'Resuming workouts' : 'The workout engine',
-          ),
+          onTap: () => startOrResumeWorkout(context, ref),
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.xl),
             child: Row(
@@ -230,7 +230,7 @@ class _LatestWorkoutCard extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final duration = Duration(seconds: workout.durationSeconds ?? 0);
     return AppCard(
-      onTap: () => showComingSoon(context, 'Workout details'),
+      onTap: () => context.push(Routes.workoutSummary(workout.id)),
       child: Row(
         children: [
           const IconBadge(

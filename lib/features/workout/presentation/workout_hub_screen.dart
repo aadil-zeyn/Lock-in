@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
 import '../../../app/theme/app_tokens.dart';
 import '../../../core/widgets/widgets.dart';
+import 'workout_actions.dart';
 
 /// Workout tab: start a session, manage routines, browse the library.
-class WorkoutHubScreen extends StatelessWidget {
+class WorkoutHubScreen extends ConsumerWidget {
   const WorkoutHubScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return TabPage(
       title: 'Workout',
       children: [
@@ -18,7 +20,7 @@ class WorkoutHubScreen extends StatelessWidget {
         PrimaryButton(
           label: 'Start empty workout',
           icon: Icons.add_rounded,
-          onPressed: () => showComingSoon(context, 'The workout engine'),
+          onPressed: () => startOrResumeWorkout(context, ref),
         ),
         const SizedBox(height: AppSpacing.md),
         Row(
