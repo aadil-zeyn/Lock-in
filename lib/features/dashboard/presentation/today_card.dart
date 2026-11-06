@@ -29,7 +29,12 @@ class TodayCard extends ConsumerWidget {
     final now = DateTime.now();
     final profile = ref.watch(userProfileProvider).value;
     final health = ref.watch(healthStatusProvider).value;
-    final steps = ref.watch(weekStepsProvider).value?.last;
+    final week7 = ref.watch(weekStepsProvider).value;
+    final steps = week7?.last;
+    // Just after midnight today is 0 — show yesterday's total alongside.
+    final yesterday = week7 != null && week7.length > 1
+        ? week7[week7.length - 2]
+        : null;
     final food = totalsFor(
       ref.watch(dayFoodProvider(dayStart(now))).value ?? const [],
     );
@@ -75,7 +80,11 @@ class TodayCard extends ConsumerWidget {
                 value: stepsConnected && steps != null
                     ? _thousands(steps)
                     : '—',
-                label: stepsConnected ? 'steps' : 'steps · connect',
+                label: !stepsConnected
+                    ? 'steps · connect'
+                    : (steps ?? 0) == 0 && (yesterday ?? 0) > 0
+                    ? 'yesterday ${_thousands(yesterday!)}'
+                    : 'steps',
                 progress: steps == null ? 0 : steps / dailyStepsGoal,
                 color: AppColors.steps,
                 onTap: () => context.push(Routes.healthConnect),
