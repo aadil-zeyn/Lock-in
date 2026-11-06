@@ -7,6 +7,7 @@ import '../features/exercises/presentation/exercise_details_screen.dart';
 import '../features/exercises/presentation/exercise_form_screen.dart';
 import '../features/exercises/presentation/exercise_library_screen.dart';
 import '../features/history/presentation/history_screen.dart';
+import '../features/history_import/presentation/import_history_screen.dart';
 import '../features/settings/presentation/profile_screen.dart';
 import '../features/statistics/presentation/progress_screen.dart';
 import '../features/workout/presentation/workout_hub_screen.dart';
@@ -25,6 +26,7 @@ abstract final class Routes {
   static const archivedExercises = '/exercises/archived';
   static String exerciseDetails(int id) => '/exercises/$id';
   static String editExercise(int id) => '/exercises/$id/edit';
+  static const importHistory = '/import-history';
 }
 
 int? _idParam(GoRouterState state) =>
@@ -74,6 +76,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: Routes.importHistory,
+        builder: (context, state) => const ImportHistoryScreen(),
       ),
     ],
   );

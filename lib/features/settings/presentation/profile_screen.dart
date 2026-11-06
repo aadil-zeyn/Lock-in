@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../app/router.dart';
 import '../../../app/theme/app_tokens.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/widgets/widgets.dart';
@@ -95,6 +97,11 @@ class ProfileScreen extends ConsumerWidget {
         const SectionHeader('Your data'),
         _SettingsGroup(
           children: [
+            _SettingsTile(
+              icon: Icons.history_edu_rounded,
+              title: 'Import history',
+              onTap: () => context.push(Routes.importHistory),
+            ),
             _SettingsTile(
               icon: Icons.ios_share_rounded,
               title: 'Export to CSV',
