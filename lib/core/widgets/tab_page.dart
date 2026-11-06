@@ -25,7 +25,11 @@ class TabPage extends StatelessWidget {
         bottom: false,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(
-              AppSpacing.page, AppSpacing.lg, AppSpacing.page, AppSpacing.xxl),
+            AppSpacing.page,
+            AppSpacing.lg,
+            AppSpacing.page,
+            AppSpacing.xxl,
+          ),
           children: [
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -35,14 +39,17 @@ class TabPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (subtitle != null)
-                        Text(subtitle!,
-                            style: text.bodyMedium
-                                ?.copyWith(color: AppColors.textSecondary)),
+                        Text(
+                          subtitle!,
+                          style: text.bodyMedium?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
                       Text(title, style: text.headlineMedium),
                     ],
                   ),
                 ),
-                if (trailing != null) trailing!,
+                ?trailing,
               ],
             ),
             const SizedBox(height: AppSpacing.sm),

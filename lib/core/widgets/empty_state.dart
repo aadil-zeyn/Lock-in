@@ -38,13 +38,18 @@ class EmptyState extends StatelessWidget {
             color: AppColors.surfaceHigh,
             borderRadius: BorderRadius.circular(compact ? 16 : 24),
           ),
-          child: Icon(icon,
-              size: compact ? 24 : 34, color: AppColors.textSecondary),
+          child: Icon(
+            icon,
+            size: compact ? 24 : 34,
+            color: AppColors.textSecondary,
+          ),
         ),
         SizedBox(height: compact ? AppSpacing.md : AppSpacing.lg),
-        Text(title,
-            textAlign: TextAlign.center,
-            style: compact ? text.titleMedium : text.titleLarge),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: compact ? text.titleMedium : text.titleLarge,
+        ),
         const SizedBox(height: AppSpacing.xs),
         Text(
           message,
@@ -61,13 +66,17 @@ class EmptyState extends StatelessWidget {
     if (compact) {
       return AppCard(
         padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.xl, vertical: AppSpacing.xl),
+          horizontal: AppSpacing.xl,
+          vertical: AppSpacing.xl,
+        ),
         child: Center(child: content),
       );
     }
     return Padding(
       padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.xl, vertical: AppSpacing.xxl * 2),
+        horizontal: AppSpacing.xl,
+        vertical: AppSpacing.xxl * 2,
+      ),
       child: Center(child: content),
     );
   }

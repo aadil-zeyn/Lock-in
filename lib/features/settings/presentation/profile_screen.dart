@@ -31,8 +31,11 @@ class ProfileScreen extends ConsumerWidget {
               const CircleAvatar(
                 radius: 28,
                 backgroundColor: AppColors.surfaceHigh,
-                child: Icon(Icons.person_rounded,
-                    color: AppColors.textSecondary, size: 30),
+                child: Icon(
+                  Icons.person_rounded,
+                  color: AppColors.textSecondary,
+                  size: 30,
+                ),
               ),
               const SizedBox(width: AppSpacing.lg),
               Expanded(
@@ -48,66 +51,72 @@ class ProfileScreen extends ConsumerWidget {
                     const SizedBox(height: 2),
                     Text(
                       'Height, units and preferences',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
+                      style: Theme.of(context).textTheme.bodySmall
                           ?.copyWith(color: AppColors.textSecondary),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded,
-                  color: AppColors.textTertiary),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textTertiary,
+              ),
             ],
           ),
         ),
         const SectionHeader('Preferences'),
-        _SettingsGroup(children: [
-          _SettingsTile(
-            icon: Icons.scale_outlined,
-            title: 'Weight unit',
-            value: weightUnit == WeightUnit.kg ? 'Kilograms' : 'Pounds',
-            onTap: soon,
-          ),
-          _SettingsTile(
-            icon: Icons.straighten_rounded,
-            title: 'Measurement unit',
-            value: lengthUnit == LengthUnit.cm ? 'Centimetres' : 'Inches',
-            onTap: soon,
-          ),
-          _SettingsTile(
-            icon: Icons.timer_outlined,
-            title: 'Default rest timer',
-            value: '${rest ~/ 60}:${(rest % 60).toString().padLeft(2, '0')}',
-            onTap: soon,
-          ),
-          _SettingsTile(
-            icon: Icons.notifications_none_rounded,
-            title: 'Notifications',
-            onTap: soon,
-          ),
-        ]),
+        _SettingsGroup(
+          children: [
+            _SettingsTile(
+              icon: Icons.scale_outlined,
+              title: 'Weight unit',
+              value: weightUnit == WeightUnit.kg ? 'Kilograms' : 'Pounds',
+              onTap: soon,
+            ),
+            _SettingsTile(
+              icon: Icons.straighten_rounded,
+              title: 'Measurement unit',
+              value: lengthUnit == LengthUnit.cm ? 'Centimetres' : 'Inches',
+              onTap: soon,
+            ),
+            _SettingsTile(
+              icon: Icons.timer_outlined,
+              title: 'Default rest timer',
+              value: '${rest ~/ 60}:${(rest % 60).toString().padLeft(2, '0')}',
+              onTap: soon,
+            ),
+            _SettingsTile(
+              icon: Icons.notifications_none_rounded,
+              title: 'Notifications',
+              onTap: soon,
+            ),
+          ],
+        ),
         const SectionHeader('Your data'),
-        _SettingsGroup(children: [
-          _SettingsTile(
-            icon: Icons.ios_share_rounded,
-            title: 'Export to CSV',
-            onTap: soon,
-          ),
-          _SettingsTile(
-            icon: Icons.backup_outlined,
-            title: 'Backup & restore',
-            onTap: soon,
-          ),
-        ]),
+        _SettingsGroup(
+          children: [
+            _SettingsTile(
+              icon: Icons.ios_share_rounded,
+              title: 'Export to CSV',
+              onTap: soon,
+            ),
+            _SettingsTile(
+              icon: Icons.backup_outlined,
+              title: 'Backup & restore',
+              onTap: soon,
+            ),
+          ],
+        ),
         const SectionHeader('About'),
-        _SettingsGroup(children: [
-          _SettingsTile(
-            icon: Icons.info_outline_rounded,
-            title: 'Lock-in',
-            value: appVersion,
-          ),
-        ]),
+        _SettingsGroup(
+          children: [
+            _SettingsTile(
+              icon: Icons.info_outline_rounded,
+              title: 'Lock-in',
+              value: appVersion,
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -155,11 +164,15 @@ class _SettingsTile extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (value != null)
-            Text(value!,
-                style: const TextStyle(color: AppColors.textSecondary)),
+            Text(
+              value!,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
           if (onTap != null)
-            const Icon(Icons.chevron_right_rounded,
-                color: AppColors.textTertiary),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textTertiary,
+            ),
         ],
       ),
       onTap: onTap,

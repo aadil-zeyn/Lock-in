@@ -14,9 +14,13 @@ class ProgressScreen extends StatelessWidget {
         SizedBox(height: AppSpacing.lg),
         Row(
           children: [
-            Expanded(child: StatCard(label: 'Workouts', value: '0')),
+            Expanded(
+              child: StatCard(label: 'Workouts', value: '0'),
+            ),
             SizedBox(width: AppSpacing.md),
-            Expanded(child: StatCard(label: 'Volume', value: '0', unit: 'kg')),
+            Expanded(
+              child: StatCard(label: 'Volume', value: '0', unit: 'kg'),
+            ),
           ],
         ),
         SectionHeader('Strength'),
