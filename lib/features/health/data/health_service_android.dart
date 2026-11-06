@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 
+import 'package:flutter/foundation.dart';
 import 'package:health/health.dart';
 
 import 'health_service.dart';
@@ -46,17 +47,27 @@ class _HealthConnect implements HealthService {
   Future<bool> _has(HealthDataType type, HealthDataAccess access) async {
     try {
       await _ready();
-      return await _health.hasPermissions([type], permissions: [access]) ??
-          false;
-    } catch (_) {
+      final ok =
+          await _health.hasPermissions([type], permissions: [access]) ?? false;
+      debugPrint('LOCKIN_HEALTH has ${type.name} ${access.name}: $ok');
+      return ok;
+    } catch (e) {
+      debugPrint('LOCKIN_HEALTH has ${type.name} ${access.name} failed: $e');
       return false;
     }
   }
 
   @override
+  Future<bool> canReadSteps() =>
+      _has(HealthDataType.STEPS, HealthDataAccess.READ);
+
+  @override
+  Future<bool> canReadWeight() =>
+      _has(HealthDataType.WEIGHT, HealthDataAccess.READ);
+
+  @override
   Future<bool> isConnected() async =>
-      await _has(HealthDataType.STEPS, HealthDataAccess.READ) ||
-      await _has(HealthDataType.WEIGHT, HealthDataAccess.READ);
+      await canReadSteps() || await canReadWeight();
 
   @override
   Future<bool> canWriteWeight() =>

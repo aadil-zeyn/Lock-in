@@ -14,6 +14,10 @@ class _Unavailable implements HealthService {
   @override
   Future<bool> canWriteWeight() async => false;
   @override
+  Future<bool> canReadSteps() async => false;
+  @override
+  Future<bool> canReadWeight() async => false;
+  @override
   Future<bool> hasFullHistory() async => false;
   @override
   Future<bool> requestFullHistory() async => false;

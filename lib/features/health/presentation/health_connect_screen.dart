@@ -118,10 +118,24 @@ class _HealthConnectScreenState extends ConsumerState<HealthConnectScreen> {
             ),
             const SizedBox(height: AppSpacing.sm),
             _StatusRow(
-              icon: Icons.link_rounded,
-              label: 'Steps and weight access',
-              ok: status.connected,
-              value: status.connected ? 'Connected' : 'Not connected',
+              icon: Icons.directions_walk_rounded,
+              label: 'Read steps',
+              ok: status.canReadSteps,
+              value: status.canReadSteps ? 'Allowed' : 'Not allowed',
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            _StatusRow(
+              icon: Icons.monitor_weight_outlined,
+              label: 'Read weight',
+              ok: status.canReadWeight,
+              value: status.canReadWeight ? 'Allowed' : 'Not allowed',
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            _StatusRow(
+              icon: Icons.upload_rounded,
+              label: 'Save weight (optional)',
+              ok: status.canWriteWeight,
+              value: status.canWriteWeight ? 'Allowed' : 'Off',
             ),
             const SizedBox(height: AppSpacing.sm),
             _StatusRow(

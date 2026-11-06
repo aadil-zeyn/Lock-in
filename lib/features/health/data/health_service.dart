@@ -32,6 +32,9 @@ abstract class HealthService {
   /// Whether weights logged in Lock-in may be saved to Health Connect.
   Future<bool> canWriteWeight();
 
+  Future<bool> canReadSteps();
+  Future<bool> canReadWeight();
+
   /// Separate Android permission for data older than 30 days.
   Future<bool> hasFullHistory();
   Future<bool> requestFullHistory();
