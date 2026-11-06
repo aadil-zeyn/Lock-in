@@ -9,6 +9,8 @@ import '../../../core/utils/date_format.dart';
 import '../../../core/utils/units.dart';
 import '../../../core/widgets/widgets.dart';
 import '../../body/presentation/log_weight_sheet.dart';
+import '../../food/data/food_repository.dart';
+import '../../food/presentation/food_screen.dart';
 import '../../health/data/health_providers.dart';
 import '../../health/data/health_service.dart';
 import '../../workout/presentation/workout_actions.dart';
@@ -51,6 +53,16 @@ class HomeScreen extends ConsumerWidget {
         ),
         const SizedBox(height: AppSpacing.md),
         _StartWorkoutCard(active: active),
+        const SizedBox(height: AppSpacing.md),
+        FoodRingsCard(
+          compact: true,
+          totals: totalsFor(
+            ref.watch(dayFoodProvider(dayStart(now))).value ?? const [],
+          ),
+          kcalGoal: profile?.dailyKcalGoal ?? 2200,
+          proteinGoal: profile?.dailyProteinGoal ?? 140,
+          onTap: () => context.go(Routes.food),
+        ),
         const SizedBox(height: AppSpacing.md),
         IntrinsicHeight(
           child: Row(

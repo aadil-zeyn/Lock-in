@@ -6,7 +6,7 @@ Full spec: `docs/PRD-v1.0.md` plus the amendments in `docs/PRD-v1.1-changes.md` 
 ## Stack
 - Flutter / Dart, Android only for now (developer is on Windows 11, VS Code + Android Studio)
 - State: flutter_riverpod (no codegen; avoid StateProvider; use `.value` on AsyncValue, not `valueOrNull`)
-- Navigation: go_router with `StatefulShellRoute.indexedStack` (5 tabs: Home, Workout, History, Progress, Profile)
+- Navigation: go_router with `StatefulShellRoute.indexedStack` (5 tabs: Home, Workout, Food, Progress, Profile). History is a pushed route from the Workout tab
 - Database: Drift + drift_flutter (SQLite). Schema in `lib/core/database/app_database.dart`
 - No backend, no network calls, no runtime font downloads
 
@@ -31,7 +31,9 @@ Full spec: `docs/PRD-v1.0.md` plus the amendments in `docs/PRD-v1.1-changes.md` 
 - `WorkoutExercises.exerciseNameSnapshot` is set when an exercise is added, so history survives renames.
 - Only one workout with status `active` (partial unique index). Persist every set change immediately.
 - Warm-up sets never count toward PRs or volume. e1RM = Epley, only for 1–12 reps.
-- Bump `schemaVersion` and write a migration for any schema change once the app has real users.
+- The app is on a real phone: every schema change bumps `schemaVersion`, adds an `onUpgrade` step, dumps the schema (`dart run drift_dev schema dump lib/core/database/app_database.dart drift_schemas/` then `schema generate drift_schemas/ test/generated_migrations/`) and extends `test/migration_test.dart`. Current: v3.
+- Band sets store `bandLevel`, not kg; they're excluded from volume. Assisted weights are stored as negative kg.
+- Food entries: kcal required, protein/name optional. Calorie tracking was added by the user's decision (the PRD listed it as out of scope).
 
 ## Design rules
 - Fitness-band look (inspired by the Mi Fitness app, never copying its screens or branding): pure black, rounded tiles, activity rings, large tabular numbers (`AppText.metric*`).
@@ -41,7 +43,8 @@ Full spec: `docs/PRD-v1.0.md` plus the amendments in `docs/PRD-v1.1-changes.md` 
 - State must never be shown by colour alone; support system font scaling.
 
 ## Status
-- Phase 1 (foundation) and Phase 2 (library filters, custom exercise create/edit, details, archive/restore, band-style restyle) done. Built-in exercises can be archived but not edited.
-- Next: Phase 3 workout engine (active workout, set logging, rest timer).
-- Weekly ring goals (`weeklyWorkoutGoal/MinutesGoal/SetsGoal` on the profile) have defaults 3 / 180 / 45 but no settings UI yet.
-- Health Connect sync is planned later via the `health` package, opt-in from Settings.
+- Done: workout engine, bands, Health Connect (steps read, weight read/write), weight logging, Progress charts, history import, Food tab (quick entries, favourites, daily targets), app icon.
+- Next: routines, settings screens (units, rest timer, goals), backup/export, Health Connect nutrition sync.
+- Built-in exercises can be archived but not edited.
+- Weekly ring goals (`weeklyWorkoutGoal/MinutesGoal/SetsGoal`) default to 3 / 180 / 45 with no settings UI yet; food targets are edited by tapping the Food rings.
+- The rest timer is in-memory (end timestamp); a system notification when it ends is not built yet.

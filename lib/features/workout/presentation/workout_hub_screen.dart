@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router.dart';
 import '../../../app/theme/app_tokens.dart';
 import '../../../core/widgets/widgets.dart';
+import '../../history/data/history_providers.dart';
+import '../../history/presentation/history_screen.dart';
 import 'workout_actions.dart';
 
 /// Workout tab: start a session, manage routines, browse the library.
@@ -13,6 +15,7 @@ class WorkoutHubScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final history = ref.watch(workoutHistoryProvider).value ?? const [];
     return TabPage(
       title: 'Workout',
       children: [
@@ -46,6 +49,24 @@ class WorkoutHubScreen extends ConsumerWidget {
             ),
           ],
         ),
+        SectionHeader(
+          'Recent workouts',
+          actionLabel: history.isEmpty ? null : 'See all',
+          onAction: () => context.push(Routes.history),
+        ),
+        if (history.isEmpty)
+          const EmptyState(
+            compact: true,
+            icon: Icons.history_rounded,
+            title: 'No workouts yet',
+            message: 'Finished sessions show up here, newest first.',
+          )
+        else
+          for (final item in history.take(3))
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: WorkoutHistoryTile(item: item),
+            ),
         SectionHeader(
           'Routines',
           actionLabel: 'New',

@@ -84,6 +84,27 @@ enum SetType {
 
 enum WorkoutStatus { active, completed, discarded }
 
+/// Meal slot for a food entry (schema v3).
+enum Meal {
+  breakfast('Breakfast'),
+  lunch('Lunch'),
+  dinner('Dinner'),
+  snack('Snacks');
+
+  const Meal(this.label);
+  final String label;
+
+  /// Sensible default for "now": breakfast before 11, lunch before 16,
+  /// dinner before 21, otherwise a snack.
+  static Meal forTime(DateTime t) => t.hour < 11
+      ? Meal.breakfast
+      : t.hour < 16
+      ? Meal.lunch
+      : t.hour < 21
+      ? Meal.dinner
+      : Meal.snack;
+}
+
 enum MeasurementType {
   bodyWeight('Body weight', isLength: false),
   bodyFat('Body fat', isLength: false),

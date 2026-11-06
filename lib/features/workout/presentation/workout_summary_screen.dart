@@ -34,11 +34,19 @@ class WorkoutSummaryScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false,
         actions: [
-          TextButton(
-            onPressed: () => context.go(Routes.home),
-            child: const Text('Done'),
+          PopupMenuButton<String>(
+            tooltip: 'More',
+            onSelected: (_) => _delete(context, ref, w.name),
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: 'delete',
+                child: Text(
+                  'Delete workout',
+                  style: TextStyle(color: AppColors.danger),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -162,11 +170,49 @@ class WorkoutSummaryScreen extends ConsumerWidget {
           const SizedBox(height: AppSpacing.lg),
           PrimaryButton(
             label: 'Done',
-            icon: Icons.home_rounded,
-            onPressed: () => context.go(Routes.home),
+            icon: Icons.check_rounded,
+            onPressed: () => _close(context),
           ),
         ],
       ),
     );
+  }
+
+  /// Back to wherever the summary was opened from (History, Home), or Home.
+  void _close(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(Routes.home);
+    }
+  }
+
+  Future<void> _delete(BuildContext context, WidgetRef ref, String name) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete $name?'),
+        content: const Text(
+          'This workout and all its sets are removed from history, charts '
+          'and records. This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: AppColors.danger),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    _close(context);
+    await ref.read(workoutRepositoryProvider).deleteCompleted(workoutId);
   }
 }

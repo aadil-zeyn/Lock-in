@@ -331,6 +331,18 @@ class WorkoutRepository {
         .go();
   }
 
+  /// Deletes a finished workout from history (the user confirms first).
+  /// Its exercises and sets go with it (cascade); exercises stay in the
+  /// library.
+  Future<void> deleteCompleted(int workoutId) async {
+    await (_db.delete(_db.workouts)..where(
+          (w) =>
+              w.id.equals(workoutId) &
+              w.status.equalsValue(WorkoutStatus.completed),
+        ))
+        .go();
+  }
+
   /// Sets from the most recent completed workout with this exercise.
   Future<List<PreviousSet>> lastPerformance(
     int exerciseId, {

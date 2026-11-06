@@ -8,6 +8,7 @@ import '../features/dashboard/presentation/home_screen.dart';
 import '../features/exercises/presentation/exercise_details_screen.dart';
 import '../features/exercises/presentation/exercise_form_screen.dart';
 import '../features/exercises/presentation/exercise_library_screen.dart';
+import '../features/food/presentation/food_screen.dart';
 import '../features/health/presentation/health_connect_screen.dart';
 import '../features/history/presentation/history_screen.dart';
 import '../features/history_import/presentation/import_history_screen.dart';
@@ -23,6 +24,9 @@ import 'theme/app_tokens.dart';
 abstract final class Routes {
   static const home = '/home';
   static const workout = '/workout';
+  static const food = '/food';
+
+  /// Pushed from the Workout tab (no longer a tab of its own).
   static const history = '/history';
   static const progress = '/progress';
   static const profile = '/profile';
@@ -57,7 +61,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         branches: [
           _branch(Routes.home, const HomeScreen()),
           _branch(Routes.workout, const WorkoutHubScreen()),
-          _branch(Routes.history, const HistoryScreen()),
+          _branch(Routes.food, const FoodScreen()),
           _branch(Routes.progress, const ProgressScreen()),
           _branch(Routes.profile, const ProfileScreen()),
         ],
@@ -93,6 +97,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.importHistory,
         builder: (context, state) => const ImportHistoryScreen(),
+      ),
+      GoRoute(
+        path: Routes.history,
+        builder: (context, state) => const HistoryScreen(),
       ),
       GoRoute(
         path: Routes.healthConnect,
@@ -142,9 +150,9 @@ class AppShell extends StatelessWidget {
       label: 'Workout',
     ),
     NavigationDestination(
-      icon: Icon(Icons.history_outlined),
-      selectedIcon: Icon(Icons.history_rounded),
-      label: 'History',
+      icon: Icon(Icons.restaurant_outlined),
+      selectedIcon: Icon(Icons.restaurant_rounded),
+      label: 'Food',
     ),
     NavigationDestination(
       icon: Icon(Icons.insights_outlined),

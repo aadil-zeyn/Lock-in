@@ -26,6 +26,8 @@ abstract final class AppColors {
   static const records = Color(0xFFFFC53D);
   static const streak = Color(0xFFFF4D6D);
   static const steps = streak;
+  static const food = Color(0xFFB8F23A);
+  static const protein = volume;
 
   // Muscle regions (see `muscle_style.dart`).
   static const push = accent;

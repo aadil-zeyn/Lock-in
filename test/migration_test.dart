@@ -6,6 +6,7 @@ import 'package:lock_in/core/database/seed_exercises.dart';
 
 import 'generated_migrations/schema.dart';
 import 'generated_migrations/schema_v1.dart' as v1;
+import 'generated_migrations/schema_v2.dart' as v2;
 
 /// Every schema step must keep real users' data. Schemas are dumped to
 /// `drift_schemas/` with `dart run drift_dev schema dump` before each change.
@@ -16,10 +17,44 @@ void main() {
     verifier = SchemaVerifier(GeneratedHelper());
   });
 
-  test('v1 → v2 produces exactly the v2 schema', () async {
-    final connection = await verifier.startAt(1);
-    final db = AppDatabase(connection);
-    await verifier.migrateAndValidate(db, 2);
+  for (final from in [1, 2]) {
+    test('v$from → v3 produces exactly the v3 schema', () async {
+      final connection = await verifier.startAt(from);
+      final db = AppDatabase(connection);
+      await verifier.migrateAndValidate(db, 3);
+      await db.close();
+    });
+  }
+
+  test('v2 → v3 keeps the profile and adds food goals', () async {
+    final schema = await verifier.schemaAt(2);
+    final old = v2.DatabaseAtV2(schema.newConnection());
+    await old.customStatement(
+      "INSERT INTO user_profiles (id, name, weight_unit, length_unit, "
+      "rest_timer_seconds, weekly_workout_goal, weekly_minutes_goal, "
+      "weekly_sets_goal, created_at, updated_at) VALUES "
+      "(1, 'Aadil', 'kg', 'cm', 120, 4, 200, 50, 0, 0)",
+    );
+    await old.close();
+
+    final db = AppDatabase(schema.newConnection());
+    final p = await db.select(db.userProfiles).getSingle();
+    expect(p.name, 'Aadil');
+    expect(p.restTimerSeconds, 120);
+    expect(p.weeklyWorkoutGoal, 4);
+    expect(p.dailyKcalGoal, 2200);
+    expect(p.dailyProteinGoal, 140);
+    // Food tables exist and work.
+    await db
+        .into(db.foodEntries)
+        .insert(
+          FoodEntriesCompanion.insert(
+            loggedAt: DateTime(2026, 11, 6, 13),
+            meal: Meal.lunch,
+            kcal: 650,
+          ),
+        );
+    expect(await db.select(db.foodEntries).get(), hasLength(1));
     await db.close();
   });
 

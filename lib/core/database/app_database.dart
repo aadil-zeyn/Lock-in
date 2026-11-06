@@ -29,6 +29,11 @@ class UserProfiles extends Table {
   IntColumn get weeklyMinutesGoal =>
       integer().withDefault(const Constant(180))();
   IntColumn get weeklySetsGoal => integer().withDefault(const Constant(45))();
+
+  // Daily food targets (schema v3).
+  IntColumn get dailyKcalGoal => integer().withDefault(const Constant(2200))();
+  IntColumn get dailyProteinGoal =>
+      integer().withDefault(const Constant(140))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -148,6 +153,31 @@ class BodyMeasurements extends Table {
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
 
+/// One thing eaten (schema v3). Quick entries: kcal is required, protein
+/// and name are optional.
+@TableIndex(name: 'idx_food_entries_logged_at', columns: {#loggedAt})
+class FoodEntries extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  DateTimeColumn get loggedAt => dateTime()();
+  TextColumn get meal => textEnum<Meal>()();
+  TextColumn get name => text().withDefault(const Constant(''))();
+  IntColumn get kcal => integer()();
+  RealColumn get proteinG => real().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+/// Favourite foods for one-tap logging (schema v3).
+class SavedFoods extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text().withLength(min: 1, max: 80)();
+  IntColumn get kcal => integer()();
+  RealColumn get proteinG => real().nullable()();
+  IntColumn get useCount => integer().withDefault(const Constant(0))();
+  DateTimeColumn get lastUsedAt => dateTime().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
 // ---------------------------------------------------------------------------
 // Database
 // ---------------------------------------------------------------------------
@@ -162,6 +192,8 @@ class BodyMeasurements extends Table {
     WorkoutExercises,
     WorkoutSets,
     BodyMeasurements,
+    FoodEntries,
+    SavedFoods,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -181,10 +213,11 @@ class AppDatabase extends _$AppDatabase {
       );
 
   /// v1: initial schema. v2: band level on sets + band exercises.
+  /// v3: food entries, saved foods, daily kcal/protein goals.
   /// The app is installed on a real phone now: every schema change needs
   /// a step in `onUpgrade` and a test in `test/migration_test.dart`.
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -213,6 +246,13 @@ class AppDatabase extends _$AppDatabase {
       if (from < 2) {
         await m.addColumn(workoutSets, workoutSets.bandLevel);
         await _insertMissing(bandSeedExercises());
+      }
+      if (from < 3) {
+        await m.createTable(foodEntries);
+        await m.createIndex(idxFoodEntriesLoggedAt);
+        await m.createTable(savedFoods);
+        await m.addColumn(userProfiles, userProfiles.dailyKcalGoal);
+        await m.addColumn(userProfiles, userProfiles.dailyProteinGoal);
       }
     },
     beforeOpen: (details) async {
