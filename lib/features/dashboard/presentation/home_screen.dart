@@ -37,6 +37,29 @@ class HomeScreen extends ConsumerWidget {
       trailing: _Avatar(name: name),
       children: [
         const SizedBox(height: AppSpacing.lg),
+        if (profile != null && profile.heightCm == null) ...[
+          AppCard(
+            color: AppColors.surfaceHigh,
+            onTap: () => context.push(Routes.editProfile),
+            child: const Row(
+              children: [
+                IconBadge(icon: Icons.badge_rounded, color: AppColors.accent),
+                SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Text(
+                    'Finish your profile — height, age and goal give you '
+                    'calorie and protein targets made for you.',
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.textTertiary,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+        ],
         const TodayCard(),
         const SizedBox(height: AppSpacing.md),
         const QuickActions(),

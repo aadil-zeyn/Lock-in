@@ -12,7 +12,7 @@ import '../../health/data/health_providers.dart';
 import '../../workout/presentation/workout_actions.dart';
 import '../data/dashboard_providers.dart';
 
-/// Daily step target for the Today card (no setting yet).
+/// Fallback daily step target (the profile's goal is used when set).
 const dailyStepsGoal = 8000;
 
 String _thousands(int n) => n.toString().replaceAllMapped(
@@ -85,7 +85,9 @@ class TodayCard extends ConsumerWidget {
                     : (steps ?? 0) == 0 && (yesterday ?? 0) > 0
                     ? 'yesterday ${_thousands(yesterday!)}'
                     : 'steps',
-                progress: steps == null ? 0 : steps / dailyStepsGoal,
+                progress: steps == null
+                    ? 0
+                    : steps / (profile?.dailyStepsGoal ?? dailyStepsGoal),
                 color: AppColors.steps,
                 onTap: () => context.push(Routes.healthConnect),
               ),

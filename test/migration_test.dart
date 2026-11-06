@@ -8,6 +8,7 @@ import 'generated_migrations/schema.dart';
 import 'generated_migrations/schema_v1.dart' as v1;
 import 'generated_migrations/schema_v2.dart' as v2;
 import 'generated_migrations/schema_v3.dart' as v3;
+import 'generated_migrations/schema_v4.dart' as v4;
 
 /// Every schema step must keep real users' data. Schemas are dumped to
 /// `drift_schemas/` with `dart run drift_dev schema dump` before each change.
@@ -18,14 +19,37 @@ void main() {
     verifier = SchemaVerifier(GeneratedHelper());
   });
 
-  for (final from in [1, 2, 3]) {
-    test('v$from → v4 produces exactly the v4 schema', () async {
+  for (final from in [1, 2, 3, 4]) {
+    test('v$from → v5 produces exactly the v5 schema', () async {
       final connection = await verifier.startAt(from);
       final db = AppDatabase(connection);
-      await verifier.migrateAndValidate(db, 4);
+      await verifier.migrateAndValidate(db, 5);
       await db.close();
     });
   }
+
+  test('v4 → v5 keeps the profile and leaves new fields empty', () async {
+    final schema = await verifier.schemaAt(4);
+    final old = v4.DatabaseAtV4(schema.newConnection());
+    await old.customStatement(
+      "INSERT INTO user_profiles (id, name, height_cm, weight_unit, "
+      "length_unit, rest_timer_seconds, weekly_workout_goal, "
+      "weekly_minutes_goal, weekly_sets_goal, daily_kcal_goal, "
+      "daily_protein_goal, created_at, updated_at) VALUES "
+      "(1, 'Aadil', 178.0, 'kg', 'cm', 90, 3, 180, 45, 2500, 150, 0, 0)",
+    );
+    await old.close();
+
+    final db = AppDatabase(schema.newConnection());
+    final p = await db.select(db.userProfiles).getSingle();
+    expect((p.name, p.heightCm, p.dailyKcalGoal), ('Aadil', 178.0, 2500));
+    expect(
+      (p.sex, p.birthYear, p.activityLevel, p.weightGoal),
+      (null, null, null, null),
+    );
+    expect(p.dailyStepsGoal, 8000);
+    await db.close();
+  });
 
   test('v3 → v4 keeps food entries and adds empty macros', () async {
     final schema = await verifier.schemaAt(3);

@@ -123,4 +123,47 @@ enum MeasurementType {
 
 enum WeightUnit { kg, lb }
 
+/// For the calorie estimate (Mifflin-St Jeor needs it). Schema v5.
+enum Sex {
+  male('Male'),
+  female('Female');
+
+  const Sex(this.label);
+  final String label;
+}
+
+/// Daily activity outside the gym, as a TDEE multiplier. Schema v5.
+enum ActivityLevel {
+  sedentary('Mostly sitting', 'Desk job, little walking', 1.2),
+  light(
+    'Lightly active',
+    'On your feet some of the day, or 1–3 workouts a week',
+    1.375,
+  ),
+  moderate('Moderately active', '3–5 workouts a week, or an active job', 1.55),
+  active('Very active', '6–7 hard workouts a week', 1.725),
+  athlete('Athlete', 'Twice-a-day training or a physical job', 1.9);
+
+  const ActivityLevel(this.label, this.hint, this.multiplier);
+  final String label;
+  final String hint;
+  final double multiplier;
+}
+
+/// What the calorie target aims for. Schema v5.
+enum WeightGoal {
+  lose('Lose fat', -0.20, 2.0),
+  maintain('Maintain', 0, 1.8),
+  gain('Build muscle', 0.10, 1.8);
+
+  const WeightGoal(this.label, this.kcalAdjust, this.proteinPerKg);
+  final String label;
+
+  /// Fraction added to maintenance calories.
+  final double kcalAdjust;
+
+  /// Protein target in grams per kg of body weight.
+  final double proteinPerKg;
+}
+
 enum LengthUnit { cm, inch }

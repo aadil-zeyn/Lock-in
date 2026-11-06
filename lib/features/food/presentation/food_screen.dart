@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:go_router/go_router.dart';
+
+import '../../../app/router.dart';
 import '../../../app/theme/app_tokens.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/utils/date_format.dart';
@@ -182,6 +185,13 @@ class _FoodScreenState extends ConsumerState<FoodScreen> {
           ],
         ),
         actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context, false);
+              this.context.push(Routes.editProfile);
+            },
+            child: const Text('Calculate from profile'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),

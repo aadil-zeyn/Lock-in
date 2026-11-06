@@ -34,6 +34,13 @@ class UserProfiles extends Table {
   IntColumn get dailyKcalGoal => integer().withDefault(const Constant(2200))();
   IntColumn get dailyProteinGoal =>
       integer().withDefault(const Constant(140))();
+
+  // About you (schema v5) — entered once in Profile, used for targets.
+  TextColumn get sex => textEnum<Sex>().nullable()();
+  IntColumn get birthYear => integer().nullable()();
+  TextColumn get activityLevel => textEnum<ActivityLevel>().nullable()();
+  TextColumn get weightGoal => textEnum<WeightGoal>().nullable()();
+  IntColumn get dailyStepsGoal => integer().withDefault(const Constant(8000))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -221,10 +228,11 @@ class AppDatabase extends _$AppDatabase {
   /// v1: initial schema. v2: band level on sets + band exercises.
   /// v3: food entries, saved foods, daily kcal/protein goals.
   /// v4: carbs and fat on food entries and saved foods.
+  /// v5: sex, birth year, activity, goal and steps goal on the profile.
   /// The app is installed on a real phone now: every schema change needs
   /// a step in `onUpgrade` and a test in `test/migration_test.dart`.
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -268,6 +276,13 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(foodEntries, foodEntries.fatG);
         await m.addColumn(savedFoods, savedFoods.carbsG);
         await m.addColumn(savedFoods, savedFoods.fatG);
+      }
+      if (from < 5) {
+        await m.addColumn(userProfiles, userProfiles.sex);
+        await m.addColumn(userProfiles, userProfiles.birthYear);
+        await m.addColumn(userProfiles, userProfiles.activityLevel);
+        await m.addColumn(userProfiles, userProfiles.weightGoal);
+        await m.addColumn(userProfiles, userProfiles.dailyStepsGoal);
       }
     },
     beforeOpen: (details) async {

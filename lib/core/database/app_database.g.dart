@@ -128,6 +128,56 @@ class $UserProfilesTable extends UserProfiles
     requiredDuringInsert: false,
     defaultValue: const Constant(140),
   );
+  @override
+  late final GeneratedColumnWithTypeConverter<Sex?, String> sex =
+      GeneratedColumn<String>(
+        'sex',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<Sex?>($UserProfilesTable.$convertersexn);
+  static const VerificationMeta _birthYearMeta = const VerificationMeta(
+    'birthYear',
+  );
+  @override
+  late final GeneratedColumn<int> birthYear = GeneratedColumn<int>(
+    'birth_year',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<ActivityLevel?, String>
+  activityLevel = GeneratedColumn<String>(
+    'activity_level',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  ).withConverter<ActivityLevel?>($UserProfilesTable.$converteractivityLeveln);
+  @override
+  late final GeneratedColumnWithTypeConverter<WeightGoal?, String> weightGoal =
+      GeneratedColumn<String>(
+        'weight_goal',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<WeightGoal?>($UserProfilesTable.$converterweightGoaln);
+  static const VerificationMeta _dailyStepsGoalMeta = const VerificationMeta(
+    'dailyStepsGoal',
+  );
+  @override
+  late final GeneratedColumn<int> dailyStepsGoal = GeneratedColumn<int>(
+    'daily_steps_goal',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(8000),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -165,6 +215,11 @@ class $UserProfilesTable extends UserProfiles
     weeklySetsGoal,
     dailyKcalGoal,
     dailyProteinGoal,
+    sex,
+    birthYear,
+    activityLevel,
+    weightGoal,
+    dailyStepsGoal,
     createdAt,
     updatedAt,
   ];
@@ -249,6 +304,21 @@ class $UserProfilesTable extends UserProfiles
         ),
       );
     }
+    if (data.containsKey('birth_year')) {
+      context.handle(
+        _birthYearMeta,
+        birthYear.isAcceptableOrUnknown(data['birth_year']!, _birthYearMeta),
+      );
+    }
+    if (data.containsKey('daily_steps_goal')) {
+      context.handle(
+        _dailyStepsGoalMeta,
+        dailyStepsGoal.isAcceptableOrUnknown(
+          data['daily_steps_goal']!,
+          _dailyStepsGoalMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -318,6 +388,32 @@ class $UserProfilesTable extends UserProfiles
         DriftSqlType.int,
         data['${effectivePrefix}daily_protein_goal'],
       )!,
+      sex: $UserProfilesTable.$convertersexn.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}sex'],
+        ),
+      ),
+      birthYear: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}birth_year'],
+      ),
+      activityLevel: $UserProfilesTable.$converteractivityLeveln.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}activity_level'],
+        ),
+      ),
+      weightGoal: $UserProfilesTable.$converterweightGoaln.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}weight_goal'],
+        ),
+      ),
+      dailyStepsGoal: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}daily_steps_goal'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -338,6 +434,22 @@ class $UserProfilesTable extends UserProfiles
       const EnumNameConverter<WeightUnit>(WeightUnit.values);
   static JsonTypeConverter2<LengthUnit, String, String> $converterlengthUnit =
       const EnumNameConverter<LengthUnit>(LengthUnit.values);
+  static JsonTypeConverter2<Sex, String, String> $convertersex =
+      const EnumNameConverter<Sex>(Sex.values);
+  static JsonTypeConverter2<Sex?, String?, String?> $convertersexn =
+      JsonTypeConverter2.asNullable($convertersex);
+  static JsonTypeConverter2<ActivityLevel, String, String>
+  $converteractivityLevel = const EnumNameConverter<ActivityLevel>(
+    ActivityLevel.values,
+  );
+  static JsonTypeConverter2<ActivityLevel?, String?, String?>
+  $converteractivityLeveln = JsonTypeConverter2.asNullable(
+    $converteractivityLevel,
+  );
+  static JsonTypeConverter2<WeightGoal, String, String> $converterweightGoal =
+      const EnumNameConverter<WeightGoal>(WeightGoal.values);
+  static JsonTypeConverter2<WeightGoal?, String?, String?>
+  $converterweightGoaln = JsonTypeConverter2.asNullable($converterweightGoal);
 }
 
 class UserProfile extends DataClass implements Insertable<UserProfile> {
@@ -352,6 +464,11 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
   final int weeklySetsGoal;
   final int dailyKcalGoal;
   final int dailyProteinGoal;
+  final Sex? sex;
+  final int? birthYear;
+  final ActivityLevel? activityLevel;
+  final WeightGoal? weightGoal;
+  final int dailyStepsGoal;
   final DateTime createdAt;
   final DateTime updatedAt;
   const UserProfile({
@@ -366,6 +483,11 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
     required this.weeklySetsGoal,
     required this.dailyKcalGoal,
     required this.dailyProteinGoal,
+    this.sex,
+    this.birthYear,
+    this.activityLevel,
+    this.weightGoal,
+    required this.dailyStepsGoal,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -395,6 +517,25 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
     map['weekly_sets_goal'] = Variable<int>(weeklySetsGoal);
     map['daily_kcal_goal'] = Variable<int>(dailyKcalGoal);
     map['daily_protein_goal'] = Variable<int>(dailyProteinGoal);
+    if (!nullToAbsent || sex != null) {
+      map['sex'] = Variable<String>(
+        $UserProfilesTable.$convertersexn.toSql(sex),
+      );
+    }
+    if (!nullToAbsent || birthYear != null) {
+      map['birth_year'] = Variable<int>(birthYear);
+    }
+    if (!nullToAbsent || activityLevel != null) {
+      map['activity_level'] = Variable<String>(
+        $UserProfilesTable.$converteractivityLeveln.toSql(activityLevel),
+      );
+    }
+    if (!nullToAbsent || weightGoal != null) {
+      map['weight_goal'] = Variable<String>(
+        $UserProfilesTable.$converterweightGoaln.toSql(weightGoal),
+      );
+    }
+    map['daily_steps_goal'] = Variable<int>(dailyStepsGoal);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -415,6 +556,17 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
       weeklySetsGoal: Value(weeklySetsGoal),
       dailyKcalGoal: Value(dailyKcalGoal),
       dailyProteinGoal: Value(dailyProteinGoal),
+      sex: sex == null && nullToAbsent ? const Value.absent() : Value(sex),
+      birthYear: birthYear == null && nullToAbsent
+          ? const Value.absent()
+          : Value(birthYear),
+      activityLevel: activityLevel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(activityLevel),
+      weightGoal: weightGoal == null && nullToAbsent
+          ? const Value.absent()
+          : Value(weightGoal),
+      dailyStepsGoal: Value(dailyStepsGoal),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -441,6 +593,17 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
       weeklySetsGoal: serializer.fromJson<int>(json['weeklySetsGoal']),
       dailyKcalGoal: serializer.fromJson<int>(json['dailyKcalGoal']),
       dailyProteinGoal: serializer.fromJson<int>(json['dailyProteinGoal']),
+      sex: $UserProfilesTable.$convertersexn.fromJson(
+        serializer.fromJson<String?>(json['sex']),
+      ),
+      birthYear: serializer.fromJson<int?>(json['birthYear']),
+      activityLevel: $UserProfilesTable.$converteractivityLeveln.fromJson(
+        serializer.fromJson<String?>(json['activityLevel']),
+      ),
+      weightGoal: $UserProfilesTable.$converterweightGoaln.fromJson(
+        serializer.fromJson<String?>(json['weightGoal']),
+      ),
+      dailyStepsGoal: serializer.fromJson<int>(json['dailyStepsGoal']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -464,6 +627,17 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
       'weeklySetsGoal': serializer.toJson<int>(weeklySetsGoal),
       'dailyKcalGoal': serializer.toJson<int>(dailyKcalGoal),
       'dailyProteinGoal': serializer.toJson<int>(dailyProteinGoal),
+      'sex': serializer.toJson<String?>(
+        $UserProfilesTable.$convertersexn.toJson(sex),
+      ),
+      'birthYear': serializer.toJson<int?>(birthYear),
+      'activityLevel': serializer.toJson<String?>(
+        $UserProfilesTable.$converteractivityLeveln.toJson(activityLevel),
+      ),
+      'weightGoal': serializer.toJson<String?>(
+        $UserProfilesTable.$converterweightGoaln.toJson(weightGoal),
+      ),
+      'dailyStepsGoal': serializer.toJson<int>(dailyStepsGoal),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -481,6 +655,11 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
     int? weeklySetsGoal,
     int? dailyKcalGoal,
     int? dailyProteinGoal,
+    Value<Sex?> sex = const Value.absent(),
+    Value<int?> birthYear = const Value.absent(),
+    Value<ActivityLevel?> activityLevel = const Value.absent(),
+    Value<WeightGoal?> weightGoal = const Value.absent(),
+    int? dailyStepsGoal,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => UserProfile(
@@ -495,6 +674,13 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
     weeklySetsGoal: weeklySetsGoal ?? this.weeklySetsGoal,
     dailyKcalGoal: dailyKcalGoal ?? this.dailyKcalGoal,
     dailyProteinGoal: dailyProteinGoal ?? this.dailyProteinGoal,
+    sex: sex.present ? sex.value : this.sex,
+    birthYear: birthYear.present ? birthYear.value : this.birthYear,
+    activityLevel: activityLevel.present
+        ? activityLevel.value
+        : this.activityLevel,
+    weightGoal: weightGoal.present ? weightGoal.value : this.weightGoal,
+    dailyStepsGoal: dailyStepsGoal ?? this.dailyStepsGoal,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -527,6 +713,17 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
       dailyProteinGoal: data.dailyProteinGoal.present
           ? data.dailyProteinGoal.value
           : this.dailyProteinGoal,
+      sex: data.sex.present ? data.sex.value : this.sex,
+      birthYear: data.birthYear.present ? data.birthYear.value : this.birthYear,
+      activityLevel: data.activityLevel.present
+          ? data.activityLevel.value
+          : this.activityLevel,
+      weightGoal: data.weightGoal.present
+          ? data.weightGoal.value
+          : this.weightGoal,
+      dailyStepsGoal: data.dailyStepsGoal.present
+          ? data.dailyStepsGoal.value
+          : this.dailyStepsGoal,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -546,6 +743,11 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
           ..write('weeklySetsGoal: $weeklySetsGoal, ')
           ..write('dailyKcalGoal: $dailyKcalGoal, ')
           ..write('dailyProteinGoal: $dailyProteinGoal, ')
+          ..write('sex: $sex, ')
+          ..write('birthYear: $birthYear, ')
+          ..write('activityLevel: $activityLevel, ')
+          ..write('weightGoal: $weightGoal, ')
+          ..write('dailyStepsGoal: $dailyStepsGoal, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -565,6 +767,11 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
     weeklySetsGoal,
     dailyKcalGoal,
     dailyProteinGoal,
+    sex,
+    birthYear,
+    activityLevel,
+    weightGoal,
+    dailyStepsGoal,
     createdAt,
     updatedAt,
   );
@@ -583,6 +790,11 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
           other.weeklySetsGoal == this.weeklySetsGoal &&
           other.dailyKcalGoal == this.dailyKcalGoal &&
           other.dailyProteinGoal == this.dailyProteinGoal &&
+          other.sex == this.sex &&
+          other.birthYear == this.birthYear &&
+          other.activityLevel == this.activityLevel &&
+          other.weightGoal == this.weightGoal &&
+          other.dailyStepsGoal == this.dailyStepsGoal &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -599,6 +811,11 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
   final Value<int> weeklySetsGoal;
   final Value<int> dailyKcalGoal;
   final Value<int> dailyProteinGoal;
+  final Value<Sex?> sex;
+  final Value<int?> birthYear;
+  final Value<ActivityLevel?> activityLevel;
+  final Value<WeightGoal?> weightGoal;
+  final Value<int> dailyStepsGoal;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   const UserProfilesCompanion({
@@ -613,6 +830,11 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
     this.weeklySetsGoal = const Value.absent(),
     this.dailyKcalGoal = const Value.absent(),
     this.dailyProteinGoal = const Value.absent(),
+    this.sex = const Value.absent(),
+    this.birthYear = const Value.absent(),
+    this.activityLevel = const Value.absent(),
+    this.weightGoal = const Value.absent(),
+    this.dailyStepsGoal = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -628,6 +850,11 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
     this.weeklySetsGoal = const Value.absent(),
     this.dailyKcalGoal = const Value.absent(),
     this.dailyProteinGoal = const Value.absent(),
+    this.sex = const Value.absent(),
+    this.birthYear = const Value.absent(),
+    this.activityLevel = const Value.absent(),
+    this.weightGoal = const Value.absent(),
+    this.dailyStepsGoal = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   }) : weightUnit = Value(weightUnit),
@@ -644,6 +871,11 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
     Expression<int>? weeklySetsGoal,
     Expression<int>? dailyKcalGoal,
     Expression<int>? dailyProteinGoal,
+    Expression<String>? sex,
+    Expression<int>? birthYear,
+    Expression<String>? activityLevel,
+    Expression<String>? weightGoal,
+    Expression<int>? dailyStepsGoal,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
   }) {
@@ -659,6 +891,11 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
       if (weeklySetsGoal != null) 'weekly_sets_goal': weeklySetsGoal,
       if (dailyKcalGoal != null) 'daily_kcal_goal': dailyKcalGoal,
       if (dailyProteinGoal != null) 'daily_protein_goal': dailyProteinGoal,
+      if (sex != null) 'sex': sex,
+      if (birthYear != null) 'birth_year': birthYear,
+      if (activityLevel != null) 'activity_level': activityLevel,
+      if (weightGoal != null) 'weight_goal': weightGoal,
+      if (dailyStepsGoal != null) 'daily_steps_goal': dailyStepsGoal,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -676,6 +913,11 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
     Value<int>? weeklySetsGoal,
     Value<int>? dailyKcalGoal,
     Value<int>? dailyProteinGoal,
+    Value<Sex?>? sex,
+    Value<int?>? birthYear,
+    Value<ActivityLevel?>? activityLevel,
+    Value<WeightGoal?>? weightGoal,
+    Value<int>? dailyStepsGoal,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
   }) {
@@ -691,6 +933,11 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
       weeklySetsGoal: weeklySetsGoal ?? this.weeklySetsGoal,
       dailyKcalGoal: dailyKcalGoal ?? this.dailyKcalGoal,
       dailyProteinGoal: dailyProteinGoal ?? this.dailyProteinGoal,
+      sex: sex ?? this.sex,
+      birthYear: birthYear ?? this.birthYear,
+      activityLevel: activityLevel ?? this.activityLevel,
+      weightGoal: weightGoal ?? this.weightGoal,
+      dailyStepsGoal: dailyStepsGoal ?? this.dailyStepsGoal,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -736,6 +983,27 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
     if (dailyProteinGoal.present) {
       map['daily_protein_goal'] = Variable<int>(dailyProteinGoal.value);
     }
+    if (sex.present) {
+      map['sex'] = Variable<String>(
+        $UserProfilesTable.$convertersexn.toSql(sex.value),
+      );
+    }
+    if (birthYear.present) {
+      map['birth_year'] = Variable<int>(birthYear.value);
+    }
+    if (activityLevel.present) {
+      map['activity_level'] = Variable<String>(
+        $UserProfilesTable.$converteractivityLeveln.toSql(activityLevel.value),
+      );
+    }
+    if (weightGoal.present) {
+      map['weight_goal'] = Variable<String>(
+        $UserProfilesTable.$converterweightGoaln.toSql(weightGoal.value),
+      );
+    }
+    if (dailyStepsGoal.present) {
+      map['daily_steps_goal'] = Variable<int>(dailyStepsGoal.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -759,6 +1027,11 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
           ..write('weeklySetsGoal: $weeklySetsGoal, ')
           ..write('dailyKcalGoal: $dailyKcalGoal, ')
           ..write('dailyProteinGoal: $dailyProteinGoal, ')
+          ..write('sex: $sex, ')
+          ..write('birthYear: $birthYear, ')
+          ..write('activityLevel: $activityLevel, ')
+          ..write('weightGoal: $weightGoal, ')
+          ..write('dailyStepsGoal: $dailyStepsGoal, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -5633,6 +5906,11 @@ typedef $$UserProfilesTableCreateCompanionBuilder =
       Value<int> weeklySetsGoal,
       Value<int> dailyKcalGoal,
       Value<int> dailyProteinGoal,
+      Value<Sex?> sex,
+      Value<int?> birthYear,
+      Value<ActivityLevel?> activityLevel,
+      Value<WeightGoal?> weightGoal,
+      Value<int> dailyStepsGoal,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
     });
@@ -5649,6 +5927,11 @@ typedef $$UserProfilesTableUpdateCompanionBuilder =
       Value<int> weeklySetsGoal,
       Value<int> dailyKcalGoal,
       Value<int> dailyProteinGoal,
+      Value<Sex?> sex,
+      Value<int?> birthYear,
+      Value<ActivityLevel?> activityLevel,
+      Value<WeightGoal?> weightGoal,
+      Value<int> dailyStepsGoal,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
     });
@@ -5716,6 +5999,34 @@ class $$UserProfilesTableFilterComposer
 
   ColumnFilters<int> get dailyProteinGoal => $composableBuilder(
     column: $table.dailyProteinGoal,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Sex?, Sex, String> get sex =>
+      $composableBuilder(
+        column: $table.sex,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<int> get birthYear => $composableBuilder(
+    column: $table.birthYear,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<ActivityLevel?, ActivityLevel, String>
+  get activityLevel => $composableBuilder(
+    column: $table.activityLevel,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<WeightGoal?, WeightGoal, String>
+  get weightGoal => $composableBuilder(
+    column: $table.weightGoal,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<int> get dailyStepsGoal => $composableBuilder(
+    column: $table.dailyStepsGoal,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5794,6 +6105,31 @@ class $$UserProfilesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get sex => $composableBuilder(
+    column: $table.sex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get birthYear => $composableBuilder(
+    column: $table.birthYear,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get activityLevel => $composableBuilder(
+    column: $table.activityLevel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get weightGoal => $composableBuilder(
+    column: $table.weightGoal,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get dailyStepsGoal => $composableBuilder(
+    column: $table.dailyStepsGoal,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -5865,6 +6201,29 @@ class $$UserProfilesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumnWithTypeConverter<Sex?, String> get sex =>
+      $composableBuilder(column: $table.sex, builder: (column) => column);
+
+  GeneratedColumn<int> get birthYear =>
+      $composableBuilder(column: $table.birthYear, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<ActivityLevel?, String> get activityLevel =>
+      $composableBuilder(
+        column: $table.activityLevel,
+        builder: (column) => column,
+      );
+
+  GeneratedColumnWithTypeConverter<WeightGoal?, String> get weightGoal =>
+      $composableBuilder(
+        column: $table.weightGoal,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<int> get dailyStepsGoal => $composableBuilder(
+    column: $table.dailyStepsGoal,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -5914,6 +6273,11 @@ class $$UserProfilesTableTableManager
                 Value<int> weeklySetsGoal = const Value.absent(),
                 Value<int> dailyKcalGoal = const Value.absent(),
                 Value<int> dailyProteinGoal = const Value.absent(),
+                Value<Sex?> sex = const Value.absent(),
+                Value<int?> birthYear = const Value.absent(),
+                Value<ActivityLevel?> activityLevel = const Value.absent(),
+                Value<WeightGoal?> weightGoal = const Value.absent(),
+                Value<int> dailyStepsGoal = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => UserProfilesCompanion(
@@ -5928,6 +6292,11 @@ class $$UserProfilesTableTableManager
                 weeklySetsGoal: weeklySetsGoal,
                 dailyKcalGoal: dailyKcalGoal,
                 dailyProteinGoal: dailyProteinGoal,
+                sex: sex,
+                birthYear: birthYear,
+                activityLevel: activityLevel,
+                weightGoal: weightGoal,
+                dailyStepsGoal: dailyStepsGoal,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -5944,6 +6313,11 @@ class $$UserProfilesTableTableManager
                 Value<int> weeklySetsGoal = const Value.absent(),
                 Value<int> dailyKcalGoal = const Value.absent(),
                 Value<int> dailyProteinGoal = const Value.absent(),
+                Value<Sex?> sex = const Value.absent(),
+                Value<int?> birthYear = const Value.absent(),
+                Value<ActivityLevel?> activityLevel = const Value.absent(),
+                Value<WeightGoal?> weightGoal = const Value.absent(),
+                Value<int> dailyStepsGoal = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => UserProfilesCompanion.insert(
@@ -5958,6 +6332,11 @@ class $$UserProfilesTableTableManager
                 weeklySetsGoal: weeklySetsGoal,
                 dailyKcalGoal: dailyKcalGoal,
                 dailyProteinGoal: dailyProteinGoal,
+                sex: sex,
+                birthYear: birthYear,
+                activityLevel: activityLevel,
+                weightGoal: weightGoal,
+                dailyStepsGoal: dailyStepsGoal,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),

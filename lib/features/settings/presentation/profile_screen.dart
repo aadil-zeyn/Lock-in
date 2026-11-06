@@ -8,7 +8,12 @@ import '../../../core/database/app_database.dart';
 import '../../../core/widgets/widgets.dart';
 import '../../dashboard/data/dashboard_providers.dart';
 
-const appVersion = '0.1.0 (Phase 1)';
+const appVersion = '0.6';
+
+String _feetInches(double cm) {
+  final total = (cm / 2.54).round();
+  return "${total ~/ 12}' ${total % 12}\"";
+}
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -21,13 +26,23 @@ class ProfileScreen extends ConsumerWidget {
     final rest = profile?.restTimerSeconds ?? 90;
 
     void soon() => showComingSoon(context, 'Settings');
+    void edit() => context.push(Routes.editProfile);
+    final p = profile;
+    final about = <String>[
+      if (p?.heightCm != null)
+        lengthUnit == LengthUnit.cm
+            ? '${p!.heightCm!.round()} cm'
+            : _feetInches(p!.heightCm!),
+      if (p?.birthYear != null) '${DateTime.now().year - p!.birthYear!} yrs',
+      if (p?.weightGoal != null) p!.weightGoal!.label,
+    ];
 
     return TabPage(
       title: 'Profile',
       children: [
         const SizedBox(height: AppSpacing.lg),
         AppCard(
-          onTap: soon,
+          onTap: edit,
           child: Row(
             children: [
               const CircleAvatar(
@@ -52,7 +67,9 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Height, units and preferences',
+                      about.isEmpty
+                          ? 'Add height, age and goal'
+                          : about.join(' · '),
                       style: Theme.of(context).textTheme.bodySmall
                           ?.copyWith(color: AppColors.textSecondary),
                     ),
@@ -73,13 +90,13 @@ class ProfileScreen extends ConsumerWidget {
               icon: Icons.scale_outlined,
               title: 'Weight unit',
               value: weightUnit == WeightUnit.kg ? 'Kilograms' : 'Pounds',
-              onTap: soon,
+              onTap: edit,
             ),
             _SettingsTile(
               icon: Icons.straighten_rounded,
               title: 'Measurement unit',
               value: lengthUnit == LengthUnit.cm ? 'Centimetres' : 'Inches',
-              onTap: soon,
+              onTap: edit,
             ),
             _SettingsTile(
               icon: Icons.timer_outlined,
