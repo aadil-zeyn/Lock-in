@@ -37,8 +37,11 @@ class WorkoutSummaryScreen extends ConsumerWidget {
         actions: [
           PopupMenuButton<String>(
             tooltip: 'More',
-            onSelected: (_) => _delete(context, ref, w.name),
+            onSelected: (v) => v == 'edit'
+                ? context.push(Routes.editWorkout(workoutId))
+                : _delete(context, ref, w.name),
             itemBuilder: (context) => const [
+              PopupMenuItem(value: 'edit', child: Text('Edit workout')),
               PopupMenuItem(
                 value: 'delete',
                 child: Text(

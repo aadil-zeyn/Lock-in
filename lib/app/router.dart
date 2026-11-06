@@ -46,6 +46,7 @@ abstract final class Routes {
   static const activeWorkout = '/session';
   static const pickExercises = '/session/add';
   static String workoutSummary(int id) => '/session/summary/$id';
+  static String editWorkout(int id) => '/session/edit/$id';
 }
 
 int? _idParam(GoRouterState state) =>
@@ -120,6 +121,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'add',
             builder: (context, state) =>
                 const ExerciseLibraryScreen(pickMode: true),
+          ),
+          GoRoute(
+            path: 'edit/:id',
+            builder: (context, state) =>
+                WorkoutEditor(workoutId: _idParam(state) ?? -1, editing: true),
           ),
           GoRoute(
             path: 'summary/:id',

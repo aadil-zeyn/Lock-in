@@ -10,6 +10,7 @@ import '../../../app/theme/app_tokens.dart';
 import '../../../app/theme/muscle_style.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_provider.dart';
+import '../../../core/utils/date_format.dart';
 import '../../../core/utils/units.dart';
 import '../../../core/widgets/widgets.dart';
 import '../../dashboard/data/dashboard_providers.dart';
@@ -40,13 +41,20 @@ class ActiveWorkoutScreen extends ConsumerWidget {
               ),
       );
     }
-    return _ActiveWorkout(workoutId: active.id);
+    return WorkoutEditor(workoutId: active.id);
   }
 }
 
-class _ActiveWorkout extends ConsumerWidget {
-  const _ActiveWorkout({required this.workoutId});
+/// Logs a live workout, or with [editing] corrects a finished one
+/// (Save instead of Finish, editable date & duration, no rest timer).
+class WorkoutEditor extends ConsumerWidget {
+  const WorkoutEditor({
+    super.key,
+    required this.workoutId,
+    this.editing = false,
+  });
   final int workoutId;
+  final bool editing;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -81,18 +89,26 @@ class _ActiveWorkout extends ConsumerWidget {
         actions: [
           PopupMenuButton<String>(
             tooltip: 'More',
-            onSelected: (v) => v == 'rename'
-                ? _rename(context, repo, w)
-                : _discard(context, ref, w),
-            itemBuilder: (context) => const [
-              PopupMenuItem(value: 'rename', child: Text('Rename')),
-              PopupMenuItem(
-                value: 'discard',
-                child: Text(
-                  'Discard workout',
-                  style: TextStyle(color: AppColors.danger),
+            onSelected: (v) => switch (v) {
+              'rename' => _rename(context, repo, w),
+              'timing' => _editTiming(context, repo, w),
+              _ => _discard(context, ref, w),
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: 'rename', child: Text('Rename')),
+              if (editing)
+                const PopupMenuItem(
+                  value: 'timing',
+                  child: Text('Change date & duration'),
+                )
+              else
+                const PopupMenuItem(
+                  value: 'discard',
+                  child: Text(
+                    'Discard workout',
+                    style: TextStyle(color: AppColors.danger),
+                  ),
                 ),
-              ),
             ],
           ),
         ],
@@ -108,7 +124,7 @@ class _ActiveWorkout extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const _RestBar(),
+              if (!editing) const _RestBar(),
               Row(
                 children: [
                   Expanded(
@@ -120,11 +136,20 @@ class _ActiveWorkout extends ConsumerWidget {
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
-                    child: PrimaryButton(
-                      label: 'Finish',
-                      icon: Icons.flag_rounded,
-                      onPressed: () => _finish(context, ref, detail),
-                    ),
+                    child: editing
+                        ? PrimaryButton(
+                            label: 'Save',
+                            icon: Icons.check_rounded,
+                            onPressed: () async {
+                              await repo.saveEdits(workoutId);
+                              if (context.mounted) context.pop();
+                            },
+                          )
+                        : PrimaryButton(
+                            label: 'Finish',
+                            icon: Icons.flag_rounded,
+                            onPressed: () => _finish(context, ref, detail),
+                          ),
                   ),
                 ],
               ),
@@ -140,7 +165,10 @@ class _ActiveWorkout extends ConsumerWidget {
           AppSpacing.xl,
         ),
         children: [
-          _Header(detail: detail, unit: unit),
+          if (editing)
+            _EditHeader(workout: w, onTap: () => _editTiming(context, repo, w))
+          else
+            _Header(detail: detail, unit: unit),
           const SizedBox(height: AppSpacing.md),
           if (detail.exercises.isEmpty)
             EmptyState(
@@ -161,9 +189,11 @@ class _ActiveWorkout extends ConsumerWidget {
               unit: unit,
               isFirst: i == 0,
               isLast: i == detail.exercises.length - 1,
-              onSetCompleted: () => ref
-                  .read(restTimerProvider.notifier)
-                  .start(Duration(seconds: restSeconds)),
+              onSetCompleted: editing
+                  ? () {}
+                  : () => ref
+                        .read(restTimerProvider.notifier)
+                        .start(Duration(seconds: restSeconds)),
             ),
             const SizedBox(height: AppSpacing.md),
           ],
@@ -216,6 +246,69 @@ class _ActiveWorkout extends ConsumerWidget {
     );
     controller.dispose();
     if (name != null) await repo.rename(w.id, name);
+  }
+
+  /// Date, start time and duration of a past workout.
+  Future<void> _editTiming(
+    BuildContext context,
+    WorkoutRepository repo,
+    Workout w,
+  ) async {
+    final now = DateTime.now();
+    final date = await showDatePicker(
+      context: context,
+      initialDate: w.startedAt,
+      firstDate: DateTime(now.year - 10),
+      lastDate: now,
+      helpText: 'Workout date',
+    );
+    if (date == null || !context.mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(w.startedAt),
+      helpText: 'Start time',
+    );
+    if (time == null || !context.mounted) return;
+    final minutes = TextEditingController(
+      text: (w.durationSeconds ?? 0) == 0 ? '' : '${w.durationSeconds! ~/ 60}',
+    );
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Duration'),
+        content: TextField(
+          controller: minutes,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: const InputDecoration(suffixText: 'minutes'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    final mins = int.tryParse(minutes.text) ?? 0;
+    minutes.dispose();
+    if (ok != true) return;
+    await repo.setTiming(
+      w.id,
+      startedAt: DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      ),
+      duration: Duration(minutes: mins.clamp(0, 600)),
+    );
   }
 
   Future<void> _discard(BuildContext context, WidgetRef ref, Workout w) async {
@@ -295,6 +388,52 @@ class _ActiveWorkout extends ConsumerWidget {
     if (context.mounted) {
       context.pushReplacement(Routes.workoutSummary(workoutId));
     }
+  }
+}
+
+/// Editing a finished workout: when it was and how long, tap to change.
+class _EditHeader extends StatelessWidget {
+  const _EditHeader({required this.workout, required this.onTap});
+  final Workout workout;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final w = workout;
+    final mins = (w.durationSeconds ?? 0) ~/ 60;
+    final t = TimeOfDay.fromDateTime(w.startedAt).format(context);
+    final length = mins == 0
+        ? 'no duration'
+        : formatDuration(Duration(minutes: mins));
+    return AppCard(
+      onTap: onTap,
+      child: Row(
+        children: [
+          const IconBadge(
+            icon: Icons.edit_calendar_rounded,
+            color: AppColors.time,
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('EDITING PAST WORKOUT', style: AppText.overline),
+                const SizedBox(height: 2),
+                Text(
+                  '${formatLongDate(w.startedAt)} ${w.startedAt.year} · $t · $length',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.chevron_right_rounded,
+            color: AppColors.textTertiary,
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -267,6 +267,56 @@ class WorkoutRepository {
     });
   }
 
+  /// Drops sets with nothing entered and exercises left without sets,
+  /// keeping numbering and order contiguous. Status is unchanged.
+  Future<void> _tidy(int workoutId) async {
+    for (final entry in await _entriesOf(workoutId)) {
+      for (final s in await _setsOf(entry.id)) {
+        final empty =
+            (s.reps ?? 0) <= 0 &&
+            (s.durationSeconds ?? 0) <= 0 &&
+            !s.isCompleted;
+        if (empty) {
+          await (_db.delete(
+            _db.workoutSets,
+          )..where((x) => x.id.equals(s.id))).go();
+        }
+      }
+      await _renumber(entry.id);
+      if ((await _setsOf(entry.id)).isEmpty) {
+        await (_db.delete(
+          _db.workoutExercises,
+        )..where((x) => x.id.equals(entry.id))).go();
+      }
+    }
+    await _reposition(workoutId);
+  }
+
+  /// Finishes editing a past workout: tidies empty rows, keeps it completed.
+  Future<void> saveEdits(int workoutId) => _db.transaction(() async {
+    await _tidy(workoutId);
+    await (_db.update(_db.workouts)..where((w) => w.id.equals(workoutId)))
+        .write(WorkoutsCompanion(updatedAt: Value(DateTime.now())));
+  });
+
+  /// Corrects when a past workout happened and how long it took.
+  Future<void> setTiming(
+    int workoutId, {
+    required DateTime startedAt,
+    required Duration duration,
+  }) async {
+    await (_db.update(
+      _db.workouts,
+    )..where((w) => w.id.equals(workoutId))).write(
+      WorkoutsCompanion(
+        startedAt: Value(startedAt),
+        durationSeconds: Value(duration.inSeconds),
+        completedAt: Value(startedAt.add(duration)),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
   /// Completes the workout. Sets with nothing entered and exercises left
   /// with no sets are dropped; everything typed in is kept.
   Future<FinishSummary> finish(int workoutId, {DateTime? now}) {
@@ -276,26 +326,7 @@ class WorkoutRepository {
       )..where((w) => w.id.equals(workoutId))).getSingle();
       final end = now ?? DateTime.now();
 
-      for (final entry in await _entriesOf(workoutId)) {
-        for (final s in await _setsOf(entry.id)) {
-          final empty =
-              (s.reps ?? 0) <= 0 &&
-              (s.durationSeconds ?? 0) <= 0 &&
-              !s.isCompleted;
-          if (empty) {
-            await (_db.delete(
-              _db.workoutSets,
-            )..where((x) => x.id.equals(s.id))).go();
-          }
-        }
-        await _renumber(entry.id);
-        if ((await _setsOf(entry.id)).isEmpty) {
-          await (_db.delete(
-            _db.workoutExercises,
-          )..where((x) => x.id.equals(entry.id))).go();
-        }
-      }
-      await _reposition(workoutId);
+      await _tidy(workoutId);
 
       final duration = end.difference(workout.startedAt);
       await (_db.update(

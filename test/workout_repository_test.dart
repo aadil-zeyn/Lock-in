@@ -170,4 +170,34 @@ void main() {
     expect(saved.bandLevel, BandLevel.heavy);
     expect(saved.reps, 15);
   });
+
+  test('editing a finished workout keeps it completed and tidies it', () async {
+    final w = await logPast('Barbell Bench Press', [(60, 8)]);
+    final we = (await detail(w)).exercises.single.entry.id;
+    final first = (await detail(w)).exercises.single.sets.single;
+    await repo.updateSet(first.id, weightKg: const Value(62.5));
+    await repo.addSet(we); // copies 62.5 x 8, unticked
+    final blank = await repo.addSet(we);
+    await repo.updateSet(blank, reps: const Value(null));
+    await repo.addExercise(w, await ex('Pec Deck')); // left empty
+    await repo.saveEdits(w);
+
+    final d = await detail(w);
+    expect(d.workout.status, WorkoutStatus.completed);
+    expect(d.exercises.map((e) => e.name), ['Barbell Bench Press']);
+    expect(d.exercises.single.sets.map((s) => s.weightKg), [62.5, 62.5]);
+  });
+
+  test('date and duration of a past workout can be corrected', () async {
+    final w = await logPast('Deadlift', [(140, 5)]);
+    await repo.setTiming(
+      w,
+      startedAt: DateTime(2026, 10, 28, 7, 15),
+      duration: const Duration(minutes: 70),
+    );
+    final saved = (await detail(w)).workout;
+    expect(saved.startedAt, DateTime(2026, 10, 28, 7, 15));
+    expect(saved.durationSeconds, 70 * 60);
+    expect(saved.completedAt, DateTime(2026, 10, 28, 8, 25));
+  });
 }
