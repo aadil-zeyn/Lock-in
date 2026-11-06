@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/dashboard/presentation/home_screen.dart';
+import '../features/exercises/presentation/exercise_details_screen.dart';
+import '../features/exercises/presentation/exercise_form_screen.dart';
 import '../features/exercises/presentation/exercise_library_screen.dart';
 import '../features/history/presentation/history_screen.dart';
 import '../features/settings/presentation/profile_screen.dart';
@@ -19,7 +21,14 @@ abstract final class Routes {
 
   /// Full-screen routes (pushed over the tab bar).
   static const exercises = '/exercises';
+  static const newExercise = '/exercises/new';
+  static const archivedExercises = '/exercises/archived';
+  static String exerciseDetails(int id) => '/exercises/$id';
+  static String editExercise(int id) => '/exercises/$id/edit';
 }
+
+int? _idParam(GoRouterState state) =>
+    int.tryParse(state.pathParameters['id'] ?? '');
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -41,6 +50,30 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.exercises,
         builder: (context, state) => const ExerciseLibraryScreen(),
+        routes: [
+          // Literal paths first so they aren't captured by ':id'.
+          GoRoute(
+            path: 'new',
+            builder: (context, state) => const ExerciseFormScreen(),
+          ),
+          GoRoute(
+            path: 'archived',
+            builder: (context, state) =>
+                const ExerciseLibraryScreen(archived: true),
+          ),
+          GoRoute(
+            path: ':id',
+            builder: (context, state) =>
+                ExerciseDetailsScreen(exerciseId: _idParam(state) ?? -1),
+            routes: [
+              GoRoute(
+                path: 'edit',
+                builder: (context, state) =>
+                    ExerciseFormScreen(exerciseId: _idParam(state) ?? -1),
+              ),
+            ],
+          ),
+        ],
       ),
     ],
   );
