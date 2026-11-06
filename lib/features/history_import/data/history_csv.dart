@@ -5,7 +5,8 @@ import '../../../core/utils/units.dart';
 ///
 /// Columns (header row required, any order, extra columns ignored):
 ///   date, workout, duration_min, exercise, primary_muscle, equipment,
-///   tracking, set, set_type, weight, unit, reps, seconds
+///   tracking, set, set_type, weight, unit, reps, seconds, band
+/// `band` is a BandLevel name (extraLight … extraHeavy) for band exercises.
 /// One row per set. `primary_muscle` / `equipment` / `tracking` are only
 /// needed for exercises that aren't in the library yet.
 ///
@@ -14,11 +15,18 @@ import '../../../core/utils/units.dart';
 /// `effectiveBodyweightLoad` in `core/utils/strength.dart`.
 
 class ImportSet {
-  const ImportSet({required this.type, this.weightKg, this.reps, this.seconds});
+  const ImportSet({
+    required this.type,
+    this.weightKg,
+    this.reps,
+    this.seconds,
+    this.band,
+  });
   final SetType type;
   final double? weightKg;
   final int? reps;
   final int? seconds;
+  final BandLevel? band;
 }
 
 /// How to create an exercise that isn't in the library.
@@ -178,6 +186,9 @@ ParsedHistory parseHistoryCsv(String text) {
         weightKg: weight == null ? null : displayToKg(weight, unit),
         reps: (reps ?? 0) > 0 ? reps : null,
         seconds: (seconds ?? 0) > 0 ? seconds : null,
+        band: BandLevel.values
+            .where((b) => b.name == col(r, 'band'))
+            .firstOrNull,
       ),
     );
   }

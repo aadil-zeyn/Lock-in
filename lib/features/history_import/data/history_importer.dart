@@ -163,6 +163,7 @@ class HistoryImporter {
                     ),
                     reps: Value(timed ? null : set.reps),
                     durationSeconds: Value(set.seconds),
+                    bandLevel: Value(set.band),
                     isCompleted: const Value(true),
                     completedAt: Value(end),
                   ),

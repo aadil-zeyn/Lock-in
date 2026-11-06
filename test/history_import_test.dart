@@ -155,6 +155,17 @@ $header
       expect(() => importer.run(preview), throwsStateError);
     });
 
+    test('imports band sets with their band level', () async {
+      const text =
+          '$header,band\n'
+          '2026-10-03,Home,,Band Face Pull,,,,1,normal,,,15,,heavy\n';
+      await importer.run(await importer.preview(parseHistoryCsv(text)));
+      final set = await db.select(db.workoutSets).getSingle();
+      expect(set.bandLevel, BandLevel.heavy);
+      expect(set.reps, 15);
+      expect(set.weightKg, isNull);
+    });
+
     test('matches library names regardless of case', () async {
       const text =
           '$header\n2026-10-01,Legs,,back squat,,,,1,normal,100,kg,5,\n';
