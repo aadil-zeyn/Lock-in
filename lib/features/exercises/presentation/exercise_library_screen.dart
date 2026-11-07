@@ -6,6 +6,7 @@ import '../../../app/router.dart';
 import '../../../app/theme/app_tokens.dart';
 import '../../../app/theme/muscle_style.dart';
 import '../../../core/database/app_database.dart';
+import '../../../core/utils/exercise_photos.dart';
 import '../../../core/widgets/widgets.dart';
 import '../data/exercise_providers.dart';
 
@@ -282,12 +283,16 @@ class ExerciseTile extends StatelessWidget {
       onTap: onTap ?? () => context.push(Routes.exerciseDetails(exercise.id)),
       child: Row(
         children: [
-          IconBadge(
-            text: muscle.initials,
-            color: muscle.color,
-            size: 48,
-            circle: false,
-          ),
+          if (exercisePhotoFrames(exercise.name, isCustom: exercise.isCustom)
+              case final photo?)
+            ExerciseThumb(asset: photo.start, borderColor: muscle.color)
+          else
+            IconBadge(
+              text: muscle.initials,
+              color: muscle.color,
+              size: 48,
+              circle: false,
+            ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(

@@ -6,6 +6,7 @@ import '../../../app/router.dart';
 import '../../../app/theme/app_tokens.dart';
 import '../../../app/theme/muscle_style.dart';
 import '../../../core/database/app_database.dart';
+import '../../../core/utils/exercise_photos.dart';
 import '../../../core/widgets/widgets.dart';
 import '../../dashboard/data/dashboard_providers.dart';
 import '../../statistics/presentation/progress_screen.dart';
@@ -128,6 +129,15 @@ class ExerciseDetailsScreen extends ConsumerWidget {
             ),
           ],
           const SizedBox(height: AppSpacing.lg),
+          if (exercisePhotoFrames(exercise.name, isCustom: exercise.isCustom)
+              case final photo?) ...[
+            ExercisePhoto(
+              start: photo.start,
+              end: photo.end,
+              label: exercise.name,
+            ),
+            const SizedBox(height: AppSpacing.md),
+          ],
 
           // Muscle diagram with a text legend (diagram alone is colour-only).
           Container(
