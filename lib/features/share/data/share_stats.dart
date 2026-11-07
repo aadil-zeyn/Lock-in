@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_provider.dart';
 import '../../../core/utils/date_format.dart';
-import '../../../core/utils/strength.dart';
+import '../../dashboard/data/week_summary.dart';
 import '../../workout/data/workout_repository.dart';
 
 /// Numbers for the "This week" story card.
@@ -50,8 +50,6 @@ WeekShare computeWeekShare({
   final days = List<bool>.filled(7, false);
   var minutes = 0, sets = 0;
   var volume = 0.0;
-  ({String exercise, double e1rmKg})? top;
-
   for (final d in workouts) {
     final w = d.workout;
     if (w.startedAt.isBefore(monday)) continue;
@@ -59,18 +57,10 @@ WeekShare computeWeekShare({
     minutes += (w.durationSeconds ?? 0) ~/ 60;
     sets += d.completedSets;
     volume += d.volumeKg;
-    for (final e in d.exercises) {
-      if (e.exercise.trackingType != TrackingType.weightReps) continue;
-      for (final s in e.sets) {
-        if (!s.isCompleted || !s.setType.countsTowardStats) continue;
-        if (s.weightKg == null || s.reps == null) continue;
-        final est = estimateOneRepMax(s.weightKg!, s.reps!);
-        if (est != null && (top == null || est > top.e1rmKg)) {
-          top = (exercise: e.name, e1rmKg: est);
-        }
-      }
-    }
   }
+  final top = bestLift(
+    workouts.where((d) => !d.workout.startedAt.isBefore(monday)),
+  );
 
   final perDay = <DateTime, int>{};
   for (final f in foodThisWeek) {

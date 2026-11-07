@@ -47,5 +47,6 @@ Full spec: `docs/PRD-v1.0.md` plus the amendments in `docs/PRD-v1.1-changes.md` 
 - Done: workout engine, bands, Health Connect (steps read, weight read/write), weight logging, Progress charts, history import, Food tab (quick entries, favourites, daily targets), app icon.
 - Next: routines, settings screens (units, rest timer, goals), backup/export, Health Connect nutrition sync.
 - Built-in exercises can be archived but not edited.
-- Weekly ring goals (`weeklyWorkoutGoal/MinutesGoal/SetsGoal`) default to 3 / 180 / 45 with no settings UI yet; food targets are edited by tapping the Food rings.
+- Weekly ring goals (`weeklyWorkoutGoal/MinutesGoal/SetsGoal`) default to 3 / 180 / 45 and are edited by tapping the Home "This week" rings (`weekly_goals_sheet.dart`); food targets are edited by tapping the Food rings.
+- Home "This week" card is driven by `weekSummaryProvider` → `computeWeekSummary` (`dashboard/data/week_summary.dart`): pace vs goal, deltas vs last week up to the same moment, per-day minutes + main region, volume, best e1RM, goal streak. `bestLift` there is shared with the share card.
 - The rest timer is in-memory (end timestamp); a system notification when it ends is not built yet.
