@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_provider.dart';
 import '../../../core/utils/date_format.dart';
+import '../../workout/data/workout_repository.dart';
+import 'week_summary.dart';
 
 /// The in-progress workout, if any (at most one, enforced by the DB).
 final activeWorkoutProvider = StreamProvider<Workout?>((ref) {
@@ -26,32 +28,6 @@ final thisWeekWorkoutsProvider = StreamProvider<List<Workout>>((ref) {
     )
     ..orderBy([(w) => OrderingTerm.desc(w.startedAt)]);
   return query.watch();
-});
-
-/// Completed working sets (warm-ups excluded) in completed workouts this week.
-final thisWeekSetsProvider = StreamProvider<int>((ref) {
-  final db = ref.watch(databaseProvider);
-  final since = startOfWeek(DateTime.now());
-  final count = db.workoutSets.id.count();
-  final query =
-      db.selectOnly(db.workoutSets).join([
-          innerJoin(
-            db.workoutExercises,
-            db.workoutExercises.id.equalsExp(db.workoutSets.workoutExerciseId),
-          ),
-          innerJoin(
-            db.workouts,
-            db.workouts.id.equalsExp(db.workoutExercises.workoutId),
-          ),
-        ])
-        ..addColumns([count])
-        ..where(
-          db.workoutSets.isCompleted.equals(true) &
-              db.workoutSets.setType.equalsValue(SetType.warmup).not() &
-              db.workouts.status.equalsValue(WorkoutStatus.completed) &
-              db.workouts.startedAt.isBiggerOrEqualValue(since),
-        );
-  return query.map((row) => row.read(count) ?? 0).watchSingle();
 });
 
 final latestWorkoutProvider = StreamProvider<Workout?>((ref) {
@@ -78,3 +54,74 @@ final userProfileProvider = StreamProvider<UserProfile>((ref) {
   final query = db.select(db.userProfiles)..where((p) => p.id.equals(1));
   return query.watchSingle();
 });
+
+/// This week vs last week, per-day detail and best lift for the Home card.
+/// Re-computes whenever workouts or their sets change.
+final weekSummaryProvider = StreamProvider<WeekSummary>((ref) {
+  final db = ref.watch(databaseProvider);
+  final repo = ref.watch(workoutRepositoryProvider);
+  return db
+      .customSelect(
+        'SELECT 1',
+        readsFrom: {
+          db.workouts,
+          db.workoutExercises,
+          db.workoutSets,
+          db.exercises,
+        },
+      )
+      .watch()
+      .asyncMap((_) async {
+        final now = DateTime.now();
+        final since = startOfWeek(
+          startOfWeek(now).subtract(const Duration(days: 1)),
+        );
+        final ids =
+            await (db.select(db.workouts)..where(
+                  (w) =>
+                      w.status.equalsValue(WorkoutStatus.completed) &
+                      w.startedAt.isBiggerOrEqualValue(since),
+                ))
+                .map((w) => w.id)
+                .get();
+        final details = <WorkoutDetail>[
+          for (final id in ids) ?(await repo.loadDetail(id)),
+        ];
+        return computeWeekSummary(workouts: details, now: now);
+      });
+});
+
+/// Weeks in a row the weekly workout goal was hit (see [weekStreak]).
+final weekStreakProvider = StreamProvider<int>((ref) {
+  final db = ref.watch(databaseProvider);
+  final goal = ref.watch(
+    userProfileProvider.select((p) => p.value?.weeklyWorkoutGoal ?? 3),
+  );
+  final query = db.selectOnly(db.workouts)
+    ..addColumns([db.workouts.startedAt])
+    ..where(db.workouts.status.equalsValue(WorkoutStatus.completed));
+  return query
+      .map((row) => row.read(db.workouts.startedAt)!)
+      .watch()
+      .map(
+        (starts) =>
+            weekStreak(workoutStarts: starts, goal: goal, now: DateTime.now()),
+      );
+});
+
+/// Saves the three weekly ring goals.
+Future<void> setWeeklyGoals(
+  AppDatabase db, {
+  required int workouts,
+  required int minutes,
+  required int sets,
+}) async {
+  await (db.update(db.userProfiles)..where((p) => p.id.equals(1))).write(
+    UserProfilesCompanion(
+      weeklyWorkoutGoal: Value(workouts),
+      weeklyMinutesGoal: Value(minutes),
+      weeklySetsGoal: Value(sets),
+      updatedAt: Value(DateTime.now()),
+    ),
+  );
+}

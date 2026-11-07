@@ -17,6 +17,21 @@ enum MuscleRegion {
   final Color color;
 }
 
+/// The region with the most sets, or null when [setsByMuscle] is empty.
+/// Ties go to the earlier region (push, pull, legs, core).
+MuscleRegion? dominantRegion(Map<MuscleGroup, int> setsByMuscle) {
+  final totals = <MuscleRegion, int>{};
+  setsByMuscle.forEach(
+    (m, n) => totals[m.region] = (totals[m.region] ?? 0) + n,
+  );
+  MuscleRegion? best;
+  for (final r in MuscleRegion.values) {
+    final n = totals[r] ?? 0;
+    if (n > 0 && (best == null || n > totals[best]!)) best = r;
+  }
+  return best;
+}
+
 extension MuscleGroupStyle on MuscleGroup {
   MuscleRegion get region => switch (this) {
     MuscleGroup.chest ||
