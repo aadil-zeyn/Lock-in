@@ -40,7 +40,7 @@ Full spec: `docs/PRD-v1.0.md` plus the amendments in `docs/PRD-v1.1-changes.md` 
 - Fitness-band look (inspired by the Mi Fitness app, never copying its screens or branding): pure black, rounded tiles, activity rings, large tabular numbers (`AppText.metric*`).
 - Colour: `AppColors.accent` (orange) for primary actions; each metric has a fixed colour (`AppColors.workouts/time/sets/volume/body/records/streak`); muscles are coloured by region push/pull/legs/core (`app/theme/muscle_style.dart`).
 - Reuse components in `core/widgets/` before making new ones (`StatCard`, `IconBadge`, `ActivityRings`, `SelectChip`, `MuscleMap`, …); don't hard-code colours or spacing.
-- Exercise "images" are the code-drawn `MuscleMap` body diagram (offline, works for custom exercises).
+- Exercise images: built-ins with a match have bundled start/end photos (`core/utils/exercise_photos.dart`, public-domain Free Exercise DB, WebP in `assets/exercises/`, keyed by the built-in name). Everything else uses the code-drawn `MuscleMap`.
 - State must never be shown by colour alone; support system font scaling.
 
 ## Status
