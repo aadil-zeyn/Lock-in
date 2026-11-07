@@ -87,9 +87,21 @@ Flutter project, Drift database with the full schema, 52-exercise seed library, 
 ### ⏳ v1.4 — Themes
 - Light theme and a few accent palettes, following the system setting by default.
 
+### ⏳ Accounts & cloud backup (to do later)
+Goal: never lose workout history if the phone is lost or reset. The app stays offline-first; the cloud only holds a backup copy.
+- [ ] Decide the goal: backup only, or also using the app on a second device (decides backup vs full sync).
+- [ ] Create a Firebase project; register the app's signing-key SHA-1 (same debug keystore CI uses).
+- [ ] Add `google-services.json` to CI as a secret (like `KEYSTORE_BASE64`); keep it out of git.
+- [ ] **Google sign-in** with Firebase Auth (optional — the app must keep working signed out).
+- [ ] **Automatic cloud backup**: upload a database snapshot (Firebase Storage or Google Drive) after each finished workout / daily.
+- [ ] **Restore on a new phone**: sign in → pick a backup → replace-all after confirmation; runs migrations if the backup is an older `schemaVersion`.
+- [ ] Test a real restore before relying on it.
+- [ ] Update the privacy policy (data no longer "never leaves the device" when backup is on).
+- Not planned: **SAML** (for company logins, needs the paid Identity Platform tier). **Live multi-device sync** (Firestore + conflict handling) only if a second device becomes a real need — weeks of work.
+
 ### 💡 Ideas that need a decision first
 - **Wear OS / band companion** — log sets from the wrist (large project).
-- **Cloud sync between phone and web** — the PRD keeps the MVP offline with no accounts; sync would need a backend and sign-in. Until then, move data with backup/restore.
+- **Cloud sync between phone and web** — the PRD keeps the MVP offline with no accounts; sync would need a backend and sign-in. Until then, move data with backup/restore. See *Accounts & cloud backup* above for the first step.
 - **Exercise photos/animations** — needs a licensed image set; the muscle map covers it for now.
 - iOS build — Flutter makes it possible, but needs a Mac to build.
 

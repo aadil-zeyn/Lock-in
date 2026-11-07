@@ -607,9 +607,11 @@ class WorkoutStoryCard extends StatelessWidget {
   }
 }
 
-/// "Day 311/365": today's ticks (steps, workout, protein, calories), the
-/// year so far, and the steps streak. With [photo] (e.g. a pump pic) the
-/// photo fills the card and the stats sit on a dark fade at the bottom.
+/// Poster-style "Day 311 / 365" card. A giant day number, the year as 365
+/// tick marks (past days filled, today highlighted), steps as the main
+/// stat, and — only on workout days — the workout with its exercises in
+/// small type plus protein and calories. With [photo] (e.g. a pump pic)
+/// the photo fills the card behind a dark fade.
 class DayStoryCard extends StatelessWidget {
   const DayStoryCard({super.key, required this.data, this.photo});
   final DayCardData data;
@@ -618,48 +620,48 @@ class DayStoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final d = data;
-    final year = d.day / d.yearDays;
     final steps = d.steps;
+    final stepsProgress = steps == null || d.stepsGoal == 0
+        ? 0.0
+        : (steps / d.stepsGoal).clamp(0.0, 1.0);
+
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Brand(right: formatLongDate(d.date).toUpperCase()),
-        const Spacer(),
+        _Brand(right: _shortDay(d.date)),
+        const SizedBox(height: 26),
+        const Text(
+          'DAY',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 5,
+            color: AppColors.accent,
+          ),
+        ),
         FittedBox(
           fit: BoxFit.scaleDown,
           alignment: Alignment.centerLeft,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              const Padding(
-                padding: EdgeInsets.only(bottom: 14),
-                child: Text(
-                  'DAY ',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 2,
-                    color: AppColors.accent,
-                  ),
-                ),
-              ),
               Text(
                 '${d.day}',
                 style: const TextStyle(
-                  fontSize: 84,
-                  height: 0.95,
+                  fontSize: 104,
+                  height: 0.92,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: -3,
+                  letterSpacing: -5,
                   color: AppColors.textPrimary,
                   fontFeatures: [FontFeature.tabularFigures()],
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.only(left: 8, bottom: 12),
                 child: Text(
-                  ' / ${d.yearDays}',
+                  '/ ${d.yearDays}',
                   style: const TextStyle(
-                    fontSize: 24,
+                    fontSize: 22,
                     fontWeight: FontWeight.w800,
                     color: AppColors.textSecondary,
                   ),
@@ -668,121 +670,201 @@ class DayStoryCard extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 10),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: year,
-            minHeight: 6,
-            color: AppColors.accent,
-            backgroundColor: Colors.white.withValues(alpha: 0.12),
+        const SizedBox(height: 14),
+        SizedBox(
+          height: 40,
+          child: CustomPaint(
+            painter: _YearTicks(day: d.day, total: d.yearDays),
           ),
         ),
         const SizedBox(height: 6),
         Text(
-          '${(year * 100).round()}% of ${d.date.year} · '
-          '${d.yearDays - d.day} days left',
-          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-        ),
-        const SizedBox(height: 18),
-        _Tick(
-          done: d.stepsOk,
-          label: 'Steps',
-          value: steps == null
-              ? 'connect Health Connect'
-              : '${_thousands(steps)} / ${_thousands(d.stepsGoal)}',
-          color: AppColors.steps,
-        ),
-        _Tick(
-          done: d.workoutOk,
-          label: 'Workout',
-          value: d.workoutName ?? 'rest day',
-          color: AppColors.workouts,
-        ),
-        if (d.exercises.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(left: 38, bottom: 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (final e in d.exercises.take(5))
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 3),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            e.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          e.summary,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
-                            fontFeatures: [FontFeature.tabularFigures()],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                if (d.exercises.length > 5)
-                  Text(
-                    '+ ${d.exercises.length - 5} more',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textTertiary,
-                    ),
-                  ),
-              ],
-            ),
+          '${(d.day / d.yearDays * 100).round()}% of ${d.date.year}'
+          '  ·  ${d.yearDays - d.day} days to go',
+          style: const TextStyle(
+            fontSize: 10.5,
+            letterSpacing: 0.4,
+            color: AppColors.textSecondary,
           ),
-        _Tick(
-          done: d.proteinOk,
-          label: 'Protein',
-          value: '${d.proteinG} / ${d.proteinGoal} g',
-          color: AppColors.protein,
         ),
-        _Tick(
-          done: d.kcalOk,
-          label: 'Calories',
-          value: '${_thousands(d.kcal)} / ${_thousands(d.kcalGoal)} kcal',
-          color: AppColors.food,
+        const Spacer(),
+
+        // Steps — always shown, the main stat.
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: steps == null ? '—' : _thousands(steps),
+                        style: const TextStyle(
+                          fontSize: 44,
+                          height: 1,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -1.5,
+                          color: AppColors.textPrimary,
+                          fontFeatures: [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                      const TextSpan(
+                        text: '  steps',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            _Check(done: d.stepsOk, color: AppColors.steps),
+          ],
         ),
-        if (d.streak >= 2) ...[
-          const SizedBox(height: 6),
-          Row(
-            children: [
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(3),
+          child: LinearProgressIndicator(
+            value: stepsProgress,
+            minHeight: 5,
+            color: AppColors.steps,
+            backgroundColor: Colors.white.withValues(alpha: 0.12),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Text(
+              'Goal ${_thousands(d.stepsGoal)}',
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const Spacer(),
+            if (d.streak >= 2) ...[
               const Icon(
                 Icons.local_fire_department_rounded,
+                size: 14,
                 color: AppColors.accent,
-                size: 18,
               ),
-              const SizedBox(width: 6),
-              Flexible(
+              const SizedBox(width: 3),
+              Text(
+                '${d.streak}-day streak',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ],
+        ),
+
+        // Workout days only: what you trained, small and tidy.
+        if (!d.isRestDay) ...[
+          const SizedBox(height: 18),
+          Container(height: 1, color: Colors.white.withValues(alpha: 0.12)),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              _Check(done: true, color: AppColors.workouts, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
                 child: Text(
-                  '${d.streak}-day ${_thousands(d.stepsGoal)}-step streak',
+                  d.workoutName!.toUpperCase(),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1,
                     color: AppColors.textPrimary,
                   ),
                 ),
               ),
+              if ((d.workoutMinutes ?? 0) > 0)
+                Text(
+                  formatDuration(Duration(minutes: d.workoutMinutes!)),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          for (final e in d.exercises.take(5))
+            Padding(
+              padding: const EdgeInsets.only(left: 30, bottom: 2),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      e.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 120),
+                    child: Text(
+                      e.summary,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          if (d.exercises.length > 5)
+            Padding(
+              padding: const EdgeInsets.only(left: 30),
+              child: Text(
+                '+ ${d.exercises.length - 5} more',
+                style: const TextStyle(
+                  fontSize: 10.5,
+                  color: AppColors.textTertiary,
+                ),
+              ),
+            ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              _Pill(
+                done: d.proteinOk,
+                text: '${d.proteinG} g protein',
+                color: AppColors.protein,
+              ),
+              _Pill(
+                done: d.kcalOk,
+                text: '${_thousands(d.kcal)} kcal',
+                color: AppColors.food,
+              ),
             ],
           ),
         ],
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
         const _Footer(),
       ],
     );
@@ -798,19 +880,20 @@ class DayStoryCard extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             Image.memory(photo!, fit: BoxFit.cover, gaplessPlayback: true),
-            // Fade to black behind the text so it stays readable on any photo.
+            // Shade the top (day number) and fade the bottom (stats) so
+            // the text reads on any photo while the middle stays clear.
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  stops: [0, 0.18, 0.42, 0.62, 1],
+                  stops: [0, 0.38, 0.5, 0.66, 1],
                   colors: [
-                    Color(0x99000000),
-                    Color(0x00000000),
-                    Color(0x00000000),
-                    Color(0xD9000000),
-                    Color(0xF7000000),
+                    Color(0xB3000000),
+                    Color(0x33000000),
+                    Color(0x14000000),
+                    Color(0xCC000000),
+                    Color(0xF5000000),
                   ],
                 ),
               ),
@@ -824,73 +907,123 @@ class DayStoryCard extends StatelessWidget {
       ),
     );
   }
+
+  static const _wd = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+  static const _mo = [
+    'JAN',
+    'FEB',
+    'MAR',
+    'APR',
+    'MAY',
+    'JUN',
+    'JUL',
+    'AUG',
+    'SEP',
+    'OCT',
+    'NOV',
+    'DEC',
+  ];
+  static String _shortDay(DateTime d) =>
+      '${_wd[d.weekday - 1]} ${d.day} ${_mo[d.month - 1]}';
 }
 
-class _Tick extends StatelessWidget {
-  const _Tick({
-    required this.done,
-    required this.label,
-    required this.value,
-    required this.color,
-  });
+/// The year as tick marks: 5 rows, past days filled orange, today white
+/// and taller, days to come faint.
+class _YearTicks extends CustomPainter {
+  _YearTicks({required this.day, required this.total});
+  final int day;
+  final int total;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const rows = 5;
+    final cols = (total / rows).ceil();
+    final cellW = size.width / cols;
+    final rowH = size.height / rows;
+    final w = (cellW * 0.42).clamp(1.0, 3.0);
+    final past = Paint()..color = AppColors.accent;
+    final future = Paint()..color = Colors.white.withValues(alpha: 0.13);
+    final today = Paint()..color = Colors.white;
+    for (var i = 0; i < total; i++) {
+      final r = i ~/ cols, c = i % cols;
+      final x = c * cellW + (cellW - w) / 2;
+      final isToday = i == day - 1;
+      final h = rowH * (isToday ? 0.95 : 0.62);
+      final y = r * rowH + (rowH - h) / 2;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(x, y, isToday ? w + 1 : w, h),
+          Radius.circular(w / 2),
+        ),
+        isToday ? today : (i < day - 1 ? past : future),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_YearTicks old) => old.day != day || old.total != total;
+}
+
+/// Filled circle with a tick when done, an empty ring when not.
+class _Check extends StatelessWidget {
+  const _Check({required this.done, required this.color, this.size = 30});
   final bool done;
-  final String label;
-  final String value;
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: done ? color : Colors.transparent,
+        border: done
+            ? null
+            : Border.all(color: Colors.white.withValues(alpha: 0.35), width: 2),
+      ),
+      child: done
+          ? Icon(
+              Icons.check_rounded,
+              size: size * 0.64,
+              color: AppColors.onAccent,
+            )
+          : null,
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  const _Pill({required this.done, required this.text, required this.color});
+  final bool done;
+  final String text;
   final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 5, 10, 5),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 26,
-            height: 26,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: done ? color : Colors.transparent,
-              border: done
-                  ? null
-                  : Border.all(
-                      color: Colors.white.withValues(alpha: 0.35),
-                      width: 2,
-                    ),
-            ),
-            child: done
-                ? const Icon(
-                    Icons.check_rounded,
-                    size: 17,
-                    color: AppColors.onAccent,
-                  )
-                : null,
+          Icon(
+            done ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
+            size: 14,
+            color: done ? color : AppColors.textTertiary,
           ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 78,
-            child: Text(
-              label,
-              maxLines: 1,
-              softWrap: false,
-              overflow: TextOverflow.fade,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: done ? AppColors.textPrimary : AppColors.textSecondary,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
+          const SizedBox(width: 5),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+              fontFeatures: [FontFeature.tabularFigures()],
             ),
           ),
         ],

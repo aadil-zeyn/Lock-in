@@ -114,6 +114,7 @@ class DayCardData {
     required this.kcalGoal,
     required this.kcalOk,
     this.exercises = const [],
+    this.workoutMinutes,
   });
 
   final DateTime date;
@@ -133,6 +134,11 @@ class DayCardData {
 
   /// Today's exercises with a one-line set summary, in workout order.
   final List<({String name, String summary})> exercises;
+
+  /// Length of today's workout (elapsed so far if still running).
+  final int? workoutMinutes;
+
+  bool get isRestDay => workoutName == null;
 
   int get day => dayOfYear(date);
   int get yearDays => daysInYear(date.year);
@@ -196,5 +202,10 @@ final dayCardProvider = FutureProvider.autoDispose<DayCardData>((ref) async {
       profile.weightGoal,
     ),
     exercises: exercises,
+    workoutMinutes: workout == null
+        ? null
+        : workout.status == WorkoutStatus.active
+        ? now.difference(workout.startedAt).inMinutes
+        : (workout.durationSeconds ?? 0) ~/ 60,
   );
 });
