@@ -84,6 +84,10 @@ Flutter project, Drift database with the full schema, 52-exercise seed library, 
 ### ⏳ v1.3 — Health Connect (opt-in)
 - Write completed workouts and body weight to Health Connect via the `health` package; read body weight from a smart scale. Off by default, enabled in Settings.
 
+### 🔨 Exercise photos
+- ✅ Start/end photos for 62 built-ins (public-domain Free Exercise DB), alternating like a slow GIF; thumbnails in the library.
+- ⏳ Photos for the remaining band moves, and an optional photo for custom exercises.
+
 ### ⏳ v1.4 — Themes
 - Light theme and a few accent palettes, following the system setting by default.
 
@@ -102,7 +106,6 @@ Goal: never lose workout history if the phone is lost or reset. The app stays of
 ### 💡 Ideas that need a decision first
 - **Wear OS / band companion** — log sets from the wrist (large project).
 - **Cloud sync between phone and web** — the PRD keeps the MVP offline with no accounts; sync would need a backend and sign-in. Until then, move data with backup/restore. See *Accounts & cloud backup* above for the first step.
-- **Exercise photos/animations** — needs a licensed image set; the muscle map covers it for now.
 - iOS build — Flutter makes it possible, but needs a Mac to build.
 
 ---
