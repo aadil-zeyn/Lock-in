@@ -107,6 +107,7 @@ Goal: never lose workout history if the phone is lost or reset. The app stays of
 - **Wear OS / band companion** — log sets from the wrist (large project).
 - **Cloud sync between phone and web** — the PRD keeps the MVP offline with no accounts; sync would need a backend and sign-in. Until then, move data with backup/restore. See *Accounts & cloud backup* above for the first step.
 - iOS build — Flutter makes it possible, but needs a Mac to build.
+- Not planned: **Photo food logging via an AI backend** — decided (Nov 2026) to keep Lock-in fully offline with no internet permission. Food stays manual entry, favourites and the bundled catalog.
 
 ---
 
