@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show Uint8List;
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_tokens.dart';
@@ -17,7 +16,7 @@ import '../data/share_stats.dart';
 /// layout identical on every phone.
 const storySize = Size(360, 640);
 
-String _thousands(num n) => n.round().toString().replaceAllMapped(
+String thousands(num n) => n.round().toString().replaceAllMapped(
   RegExp(r'(\d)(?=(\d{3})+$)'),
   (m) => '${m[1]},',
 );
@@ -25,7 +24,7 @@ String _thousands(num n) => n.round().toString().replaceAllMapped(
 String _volume(double kg, WeightUnit unit) {
   final v = kgToDisplay(kg, unit);
   if (v >= 10000) return '${(v / 1000).toStringAsFixed(1)}k';
-  return _thousands(v);
+  return thousands(v);
 }
 
 class _StoryFrame extends StatelessWidget {
@@ -85,8 +84,8 @@ class _Glow extends StatelessWidget {
   }
 }
 
-class _Brand extends StatelessWidget {
-  const _Brand({required this.right});
+class StoryBrand extends StatelessWidget {
+  const StoryBrand({super.key, required this.right});
   final String right;
 
   @override
@@ -215,8 +214,8 @@ class _Tile extends StatelessWidget {
   }
 }
 
-class _Footer extends StatelessWidget {
-  const _Footer();
+class StoryFooter extends StatelessWidget {
+  const StoryFooter({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -257,7 +256,7 @@ class WeekStoryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _Brand(
+          StoryBrand(
             right: 'WEEK OF ${formatShortDate(d.weekStart).toUpperCase()}',
           ),
           const SizedBox(height: 18),
@@ -376,7 +375,7 @@ class WeekStoryCard extends StatelessWidget {
                 child: d.avgKcal != null
                     ? _Tile(
                         label: 'Avg calories',
-                        value: _thousands(d.avgKcal!),
+                        value: thousands(d.avgKcal!),
                         unit: 'kcal',
                         color: AppColors.food,
                       )
@@ -450,7 +449,7 @@ class WeekStoryCard extends StatelessWidget {
               ),
             ),
           const Spacer(),
-          const _Footer(),
+          const StoryFooter(),
         ],
       ),
     );
@@ -475,7 +474,7 @@ class WorkoutStoryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _Brand(right: formatLongDate(w.startedAt).toUpperCase()),
+          StoryBrand(right: formatLongDate(w.startedAt).toUpperCase()),
           const SizedBox(height: 28),
           const Text(
             'WORKOUT COMPLETE',
@@ -600,7 +599,7 @@ class WorkoutStoryCard extends StatelessWidget {
               ),
             ),
           const Spacer(),
-          const _Footer(),
+          const StoryFooter(),
         ],
       ),
     );
@@ -610,12 +609,13 @@ class WorkoutStoryCard extends StatelessWidget {
 /// Poster-style "Day 311 / 365" card. A giant day number, the year as 365
 /// tick marks (past days filled, today highlighted), steps as the main
 /// stat, and — only on workout days — the workout with its exercises in
-/// small type plus protein and calories. With [photo] (e.g. a pump pic)
-/// the photo fills the card behind a dark fade.
+/// small type plus protein and calories. With a [background] photo
+/// the photo fills the card behind a dark fade. One of the "Today"
+/// designs (see `today_designs.dart`).
 class DayStoryCard extends StatelessWidget {
-  const DayStoryCard({super.key, required this.data, this.photo});
+  const DayStoryCard({super.key, required this.data, this.background});
   final DayCardData data;
-  final Uint8List? photo;
+  final ImageProvider? background;
 
   @override
   Widget build(BuildContext context) {
@@ -628,7 +628,7 @@ class DayStoryCard extends StatelessWidget {
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Brand(right: _shortDay(d.date)),
+        StoryBrand(right: _shortDay(d.date)),
         const SizedBox(height: 26),
         const Text(
           'DAY',
@@ -701,7 +701,7 @@ class DayStoryCard extends StatelessWidget {
                   TextSpan(
                     children: [
                       TextSpan(
-                        text: steps == null ? '—' : _thousands(steps),
+                        text: steps == null ? '—' : thousands(steps),
                         style: const TextStyle(
                           fontSize: 44,
                           height: 1,
@@ -724,7 +724,7 @@ class DayStoryCard extends StatelessWidget {
                 ),
               ),
             ),
-            _Check(done: d.stepsOk, color: AppColors.steps),
+            StoryCheck(done: d.stepsOk, color: AppColors.steps),
           ],
         ),
         const SizedBox(height: 8),
@@ -741,7 +741,7 @@ class DayStoryCard extends StatelessWidget {
         Row(
           children: [
             Text(
-              'Goal ${_thousands(d.stepsGoal)}',
+              'Goal ${thousands(d.stepsGoal)}',
               style: const TextStyle(
                 fontSize: 11,
                 color: AppColors.textSecondary,
@@ -774,7 +774,7 @@ class DayStoryCard extends StatelessWidget {
           const SizedBox(height: 14),
           Row(
             children: [
-              _Check(done: true, color: AppColors.workouts, size: 20),
+              StoryCheck(done: true, color: AppColors.workouts, size: 20),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -858,18 +858,18 @@ class DayStoryCard extends StatelessWidget {
               ),
               _Pill(
                 done: d.kcalOk,
-                text: '${_thousands(d.kcal)} kcal',
+                text: '${thousands(d.kcal)} kcal',
                 color: AppColors.food,
               ),
             ],
           ),
         ],
         const SizedBox(height: 16),
-        const _Footer(),
+        const StoryFooter(),
       ],
     );
 
-    if (photo == null) {
+    if (background == null) {
       return _StoryFrame(glow: AppColors.accent, child: content);
     }
     return MediaQuery(
@@ -879,7 +879,7 @@ class DayStoryCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.memory(photo!, fit: BoxFit.cover, gaplessPlayback: true),
+            Image(image: background!, fit: BoxFit.cover, gaplessPlayback: true),
             // Shade the top (day number) and fade the bottom (stats) so
             // the text reads on any photo while the middle stays clear.
             const DecoratedBox(
@@ -965,8 +965,13 @@ class _YearTicks extends CustomPainter {
 }
 
 /// Filled circle with a tick when done, an empty ring when not.
-class _Check extends StatelessWidget {
-  const _Check({required this.done, required this.color, this.size = 30});
+class StoryCheck extends StatelessWidget {
+  const StoryCheck({
+    super.key,
+    required this.done,
+    required this.color,
+    this.size = 30,
+  });
   final bool done;
   final Color color;
   final double size;

@@ -101,6 +101,15 @@ String? summarizeSets(
   }
 }
 
+/// Rough walking distance from steps: stride ≈ 41.5% of height,
+/// 0.76 m when the height isn't set. Shown with "≈" — it's an estimate.
+double estimateDistanceKm(int steps, double? heightCm) {
+  final strideM = heightCm == null || heightCm <= 0
+      ? 0.76
+      : heightCm * 0.415 / 100;
+  return steps * strideM / 1000;
+}
+
 class DayCardData {
   const DayCardData({
     required this.date,
@@ -115,6 +124,9 @@ class DayCardData {
     required this.kcalOk,
     this.exercises = const [],
     this.workoutMinutes,
+    this.workoutSets = 0,
+    this.stepsWeek,
+    this.heightCm,
   });
 
   final DateTime date;
@@ -138,6 +150,15 @@ class DayCardData {
   /// Length of today's workout (elapsed so far if still running).
   final int? workoutMinutes;
 
+  /// Completed working sets in today's workout (warm-ups excluded).
+  final int workoutSets;
+
+  /// Steps for the last 7 days, oldest first, today last. Null when
+  /// Health Connect isn't connected.
+  final List<int>? stepsWeek;
+
+  final double? heightCm;
+
   bool get isRestDay => workoutName == null;
 
   int get day => dayOfYear(date);
@@ -145,6 +166,14 @@ class DayCardData {
   bool get stepsOk => (steps ?? 0) >= stepsGoal;
   bool get workoutOk => workoutName != null;
   bool get proteinOk => proteinGoal > 0 && proteinG >= proteinGoal;
+
+  /// 0..1 towards the steps goal.
+  double get stepsProgress => steps == null || stepsGoal <= 0
+      ? 0
+      : (steps! / stepsGoal).clamp(0.0, 1.0);
+
+  double? get distanceKm =>
+      steps == null ? null : estimateDistanceKm(steps!, heightCm);
 }
 
 final dayCardProvider = FutureProvider.autoDispose<DayCardData>((ref) async {
@@ -202,6 +231,15 @@ final dayCardProvider = FutureProvider.autoDispose<DayCardData>((ref) async {
       profile.weightGoal,
     ),
     exercises: exercises,
+    workoutSets: [
+      for (final e in detail?.exercises ?? const <WorkoutExerciseDetail>[])
+        for (final s in e.sets)
+          if (s.isCompleted && s.setType.countsTowardStats) s,
+    ].length,
+    stepsWeek: stepsList?.sublist(
+      stepsList.length < 7 ? 0 : stepsList.length - 7,
+    ),
+    heightCm: profile.heightCm,
     workoutMinutes: workout == null
         ? null
         : workout.status == WorkoutStatus.active

@@ -49,4 +49,5 @@ Full spec: `docs/PRD-v1.0.md` plus the amendments in `docs/PRD-v1.1-changes.md` 
 - Built-in exercises can be archived but not edited.
 - Weekly ring goals (`weeklyWorkoutGoal/MinutesGoal/SetsGoal`) default to 3 / 180 / 45 and are edited by tapping the Home "This week" rings (`weekly_goals_sheet.dart`); food targets are edited by tapping the Food rings.
 - Home "This week" card is driven by `weekSummaryProvider` → `computeWeekSummary` (`dashboard/data/week_summary.dart`): pace vs goal, deltas vs last week up to the same moment, per-day minutes + main region, volume, best e1RM, goal streak. `bestLift` there is shared with the share card.
+- Share screen "Today" card: steps are always the hero, the workout only appears (second) on gym days. Layouts are registered in `todayDesigns` (`share/presentation/today_designs.dart`); bundled Unsplash backgrounds in `shareBackgrounds` (`share_backgrounds.dart`, WebP in `assets/share/`, credits in `docs/SHARE_PHOTOS.md`). Add a design or photo by adding one entry — the pickers pick it up.
 - The rest timer is in-memory (end timestamp); a system notification when it ends is not built yet.
