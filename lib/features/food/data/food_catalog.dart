@@ -569,6 +569,16 @@ const foodCatalog = <CatalogFood>[
   CatalogFood('Paneer', _p, '100 g', 265, 18, 3.6, 20),
   CatalogFood('Soya chunks', _p, '50 g dry', 172, 26, 16, 0.3),
   CatalogFood('Greek yogurt', _p, '150 g', 130, 14, 6, 5),
+  CatalogFood(
+    'Amul High Protein Lassi',
+    _p,
+    '1 pack (200 ml)',
+    110,
+    15,
+    9,
+    1.5,
+    aliases: ['amul', 'protein lassi', 'lassi'],
+  ),
   CatalogFood('Tuna (canned in water)', _p, '100 g', 120, 26, 0, 1),
   CatalogFood('Peanut butter', _p, '1 tablespoon (~16 g)', 95, 4, 3, 8),
   CatalogFood(
