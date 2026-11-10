@@ -122,9 +122,8 @@ class _FrameLabel extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               end ? 'End' : 'Start',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: AppColors.textPrimary,
-              ),
+              style: Theme.of(context).textTheme.labelMedium
+                  ?.copyWith(color: AppColors.textPrimary),
             ),
           ],
         ),

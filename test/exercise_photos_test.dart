@@ -12,8 +12,11 @@ void main() {
   };
 
   test('every photo belongs to a built-in exercise', () {
-    expect(seedNames.containsAll(exercisePhotoBases.keys), isTrue,
-        reason: '${exercisePhotoBases.keys.toSet().difference(seedNames)}');
+    expect(
+      seedNames.containsAll(exercisePhotoBases.keys),
+      isTrue,
+      reason: '${exercisePhotoBases.keys.toSet().difference(seedNames)}',
+    );
   });
 
   test('both frames of every photo are bundled', () {

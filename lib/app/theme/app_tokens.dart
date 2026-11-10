@@ -9,6 +9,9 @@ abstract final class AppColors {
   static const surfaceHigh = Color(0xFF1F1F24);
   static const outline = Color(0xFF2C2C33);
 
+  // Body diagram: un-highlighted muscles sit one step above [outline].
+  static const muscleIdle = Color(0xFF34343C);
+
   static const textPrimary = Color(0xFFF5F5F7);
   static const textSecondary = Color(0xFF9A9AA1);
   static const textTertiary = Color(0xFF63636B);
