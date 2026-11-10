@@ -58,6 +58,14 @@ class _FoodScreenState extends ConsumerState<FoodScreen> {
       );
   }
 
+  void _shareDay() {
+    final d = _day;
+    final day =
+        '${d.year}-${d.month.toString().padLeft(2, '0')}-'
+        '${d.day.toString().padLeft(2, '0')}';
+    context.push('${Routes.shareProgress}?card=food&day=$day');
+  }
+
   Future<void> _deleteEntry(FoodEntry e) async {
     final repo = ref.read(foodRepositoryProvider);
     await repo.deleteEntry(e.id);
@@ -90,6 +98,11 @@ class _FoodScreenState extends ConsumerState<FoodScreen> {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          IconButton(
+            tooltip: 'Share this day',
+            onPressed: entries.isEmpty ? null : _shareDay,
+            icon: const Icon(Icons.ios_share_rounded, size: 20),
+          ),
           IconButton(
             tooltip: 'Previous day',
             onPressed: () => _shift(-1),
