@@ -9,14 +9,40 @@ import '../data/food_catalog.dart';
 import '../data/food_repository.dart';
 import 'food_entry_sheet.dart';
 
+/// What the picker sheet closed with.
+sealed class _PickerResult {
+  const _PickerResult();
+}
+
+class _Logged extends _PickerResult {
+  const _Logged(this.id, this.meal);
+  final int id;
+  final Meal meal;
+}
+
+class _TypeItIn extends _PickerResult {
+  const _TypeItIn(this.meal);
+  final Meal meal;
+}
+
 /// Search the built-in food list, pick servings, log it. "Quick add"
 /// falls back to typing calories by hand.
+///
+/// With [replacing], the picked food overwrites that entry instead of
+/// adding a new one (its day and time stay).
+///
+/// After logging, a snackbar offers Edit to fix the entry straight away.
 Future<void> showFoodPicker(
   BuildContext context, {
   required DateTime day,
   Meal? meal,
-}) {
-  return showModalBottomSheet<void>(
+  FoodEntry? replacing,
+}) async {
+  final repo = ProviderScope.containerOf(
+    context,
+    listen: false,
+  ).read(foodRepositoryProvider);
+  final result = await showModalBottomSheet<_PickerResult>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
@@ -25,16 +51,60 @@ Future<void> showFoodPicker(
       initialChildSize: 0.92,
       minChildSize: 0.5,
       maxChildSize: 0.95,
-      builder: (context, scroll) =>
-          _FoodPicker(day: day, meal: meal, scroll: scroll),
+      builder: (context, scroll) => _FoodPicker(
+        day: day,
+        meal: meal,
+        replacing: replacing,
+        scroll: scroll,
+      ),
     ),
   );
+  if (result == null || !context.mounted) return;
+
+  switch (result) {
+    case _TypeItIn(meal: final m):
+      final existing = replacing == null
+          ? null
+          : await repo.getEntry(replacing.id);
+      if (!context.mounted) return;
+      await showFoodEntrySheet(context, day: day, meal: m, existing: existing);
+    case _Logged(:final id, meal: final m):
+      final entry = await repo.getEntry(id);
+      if (entry == null || !context.mounted) return;
+      final verb = replacing == null ? 'Added' : 'Changed to';
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('$verb ${foodEntryLabel(entry)} · ${m.label}'),
+            action: SnackBarAction(
+              label: 'Edit',
+              onPressed: () async {
+                // Re-read: it may have changed since the snackbar appeared.
+                final latest = await repo.getEntry(id);
+                if (latest == null || !context.mounted) return;
+                await showFoodEntrySheet(
+                  context,
+                  day: latest.loggedAt,
+                  existing: latest,
+                );
+              },
+            ),
+          ),
+        );
+  }
 }
 
 class _FoodPicker extends ConsumerStatefulWidget {
-  const _FoodPicker({required this.day, required this.scroll, this.meal});
+  const _FoodPicker({
+    required this.day,
+    required this.scroll,
+    this.meal,
+    this.replacing,
+  });
   final DateTime day;
   final Meal? meal;
+  final FoodEntry? replacing;
   final ScrollController scroll;
 
   @override
@@ -46,7 +116,11 @@ class _FoodPickerState extends ConsumerState<_FoodPicker> {
   FoodCategory? _category;
   CatalogFood? _picked;
   double _servings = 1;
-  late Meal _meal = widget.meal ?? Meal.forTime(DateTime.now());
+  late Meal _meal =
+      widget.replacing?.meal ?? widget.meal ?? Meal.forTime(DateTime.now());
+  bool _saving = false;
+
+  bool get _isReplace => widget.replacing != null;
 
   DateTime _timestamp() {
     final now = DateTime.now();
@@ -55,13 +129,22 @@ class _FoodPickerState extends ConsumerState<_FoodPicker> {
   }
 
   Future<void> _add() async {
+    if (_saving) return;
+    setState(() => _saving = true);
     final food = _picked!;
-    await ref
-        .read(foodRepositoryProvider)
-        .logCatalog(food, _servings, _meal, _timestamp());
+    final repo = ref.read(foodRepositoryProvider);
+    final int id;
+    if (_isReplace) {
+      id = widget.replacing!.id;
+      await repo.replaceWithCatalog(id, food, _servings, _meal);
+    } else {
+      id = await repo.logCatalog(food, _servings, _meal, _timestamp());
+    }
     HapticFeedback.mediumImpact();
-    if (mounted) Navigator.pop(context);
+    if (mounted) Navigator.pop(context, _Logged(id, _meal));
   }
+
+  void _typeItIn() => Navigator.pop(context, _TypeItIn(_meal));
 
   @override
   Widget build(BuildContext context) {
@@ -83,15 +166,19 @@ class _FoodPickerState extends ConsumerState<_FoodPicker> {
           child: Row(
             children: [
               Expanded(
-                child: Text('Add to ${_meal.label}', style: text.titleLarge),
+                child: Text(
+                  _isReplace
+                      ? 'Change ${foodEntryLabel(widget.replacing!)} to…'
+                      : 'Add to ${_meal.label}',
+                  style: text.titleLarge,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               TextButton.icon(
-                onPressed: () {
-                  Navigator.pop(context);
-                  showFoodEntrySheet(context, day: widget.day, meal: _meal);
-                },
+                onPressed: _typeItIn,
                 icon: const Icon(Icons.edit_note_rounded),
-                label: const Text('Quick add'),
+                label: Text(_isReplace ? 'Type it in' : 'Quick add'),
               ),
             ],
           ),
@@ -133,12 +220,9 @@ class _FoodPickerState extends ConsumerState<_FoodPicker> {
               ? EmptyState(
                   icon: Icons.search_off_rounded,
                   title: 'Not in the list',
-                  message: 'Use Quick add to type the calories yourself.',
-                  actionLabel: 'Quick add',
-                  onAction: () {
-                    Navigator.pop(context);
-                    showFoodEntrySheet(context, day: widget.day, meal: _meal);
-                  },
+                  message: 'Type the calories in yourself instead.',
+                  actionLabel: _isReplace ? 'Type it in' : 'Quick add',
+                  onAction: _typeItIn,
                 )
               : ListView.separated(
                   controller: widget.scroll,
@@ -303,9 +387,11 @@ class _FoodPickerState extends ConsumerState<_FoodPicker> {
         ),
         const SizedBox(height: AppSpacing.lg),
         PrimaryButton(
-          label: 'Add ${catalogEntryName(f, s)}',
-          icon: Icons.check_rounded,
-          onPressed: _add,
+          label: _isReplace
+              ? 'Change to ${catalogEntryName(f, s)}'
+              : 'Add ${catalogEntryName(f, s)}',
+          icon: _isReplace ? Icons.swap_horiz_rounded : Icons.check_rounded,
+          onPressed: _saving ? null : _add,
         ),
       ],
     );

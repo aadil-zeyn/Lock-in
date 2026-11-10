@@ -7,24 +7,17 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router.dart';
 import '../../../app/theme/app_tokens.dart';
 import '../../../core/database/app_database.dart';
-import '../../../core/utils/date_format.dart';
 import '../../../core/widgets/widgets.dart';
 import '../../dashboard/data/dashboard_providers.dart';
 import '../data/food_repository.dart';
 import 'food_entry_sheet.dart';
 import 'food_picker_sheet.dart';
+import 'saved_food_sheet.dart';
 
 String _thousands(int n) => n.toString().replaceAllMapped(
   RegExp(r'(\d)(?=(\d{3})+$)'),
   (m) => '${m[1]},',
 );
-
-String dayLabel(DateTime day, DateTime now) {
-  final d = dayStart(day), t = dayStart(now);
-  if (d == t) return 'Today';
-  if (d == t.subtract(const Duration(days: 1))) return 'Yesterday';
-  return formatLongDate(d);
-}
 
 /// Food tab: one day at a time, quick kcal/protein entries per meal.
 class FoodScreen extends ConsumerStatefulWidget {
@@ -60,6 +53,24 @@ class _FoodScreenState extends ConsumerState<FoodScreen> {
           action: SnackBarAction(
             label: 'Undo',
             onPressed: () => repo.deleteEntry(id),
+          ),
+        ),
+      );
+  }
+
+  Future<void> _deleteEntry(FoodEntry e) async {
+    final repo = ref.read(foodRepositoryProvider);
+    await repo.deleteEntry(e.id);
+    HapticFeedback.mediumImpact();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('Deleted ${foodEntryLabel(e)}'),
+          action: SnackBarAction(
+            label: 'Undo',
+            onPressed: () => repo.restoreEntry(e),
           ),
         ),
       );
@@ -109,7 +120,11 @@ class _FoodScreenState extends ConsumerState<FoodScreen> {
           onPressed: () => showFoodPicker(context, day: _day),
         ),
         if (saved.isNotEmpty) ...[
-          const SectionHeader('Favourites'),
+          SectionHeader(
+            'Favourites',
+            actionLabel: 'Edit',
+            onAction: () => showFavouritesManager(context),
+          ),
           SizedBox(
             height: 44,
             child: ListView.separated(
@@ -118,13 +133,17 @@ class _FoodScreenState extends ConsumerState<FoodScreen> {
               separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
               itemBuilder: (context, i) {
                 final f = saved[i];
-                return InputChip(
-                  label: Text('${f.name} · ${f.kcal}'),
-                  avatar: const Icon(Icons.add_rounded, size: 18),
-                  onPressed: () => _logFavourite(f),
-                  onDeleted: () =>
-                      ref.read(foodRepositoryProvider).deleteSaved(f.id),
-                  deleteButtonTooltipMessage: 'Remove favourite',
+                // Long-press to fix a favourite without opening the list.
+                return GestureDetector(
+                  onLongPress: () => showSavedFoodSheet(context, f),
+                  child: InputChip(
+                    label: Text('${f.name} · ${f.kcal}'),
+                    avatar: const Icon(Icons.add_rounded, size: 18),
+                    onPressed: () => _logFavourite(f),
+                    onDeleted: () =>
+                        ref.read(foodRepositoryProvider).deleteSaved(f.id),
+                    deleteButtonTooltipMessage: 'Remove favourite',
+                  ),
                 );
               },
             ),
@@ -138,17 +157,19 @@ class _FoodScreenState extends ConsumerState<FoodScreen> {
             kcal: totals.kcalFor(meal),
             onAdd: () => showFoodPicker(context, day: _day, meal: meal),
             onOpen: (e) => showFoodEntrySheet(context, day: _day, existing: e),
+            onDelete: _deleteEntry,
           ),
           const SizedBox(height: AppSpacing.md),
         ],
-        if (entries.isEmpty)
-          Text(
-            _isToday
-                ? 'Tap Add food and search the list — puttu, omelette, biryani…'
-                : 'Nothing logged on this day.',
-            textAlign: TextAlign.center,
-            style: text.bodySmall?.copyWith(color: AppColors.textSecondary),
-          ),
+        Text(
+          entries.isNotEmpty
+              ? 'Tap a food to change anything about it · swipe to delete'
+              : _isToday
+              ? 'Tap Add food and search the list — puttu, omelette, biryani…'
+              : 'Nothing logged on this day.',
+          textAlign: TextAlign.center,
+          style: text.bodySmall?.copyWith(color: AppColors.textSecondary),
+        ),
       ],
     );
   }
@@ -361,6 +382,7 @@ class _MealCard extends StatelessWidget {
     required this.kcal,
     required this.onAdd,
     required this.onOpen,
+    required this.onDelete,
   });
 
   final Meal meal;
@@ -368,6 +390,7 @@ class _MealCard extends StatelessWidget {
   final int kcal;
   final VoidCallback onAdd;
   final ValueChanged<FoodEntry> onOpen;
+  final ValueChanged<FoodEntry> onDelete;
 
   IconData get _icon => switch (meal) {
     Meal.breakfast => Icons.free_breakfast_rounded,
@@ -413,47 +436,80 @@ class _MealCard extends StatelessWidget {
             ],
           ),
           for (final e in entries)
-            InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: () => onOpen(e),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  46,
-                  AppSpacing.sm,
-                  AppSpacing.md,
-                  AppSpacing.sm,
+            Dismissible(
+              key: ValueKey(e.id),
+              direction: DismissDirection.endToStart,
+              onDismissed: (_) => onDelete(e),
+              background: Container(
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.only(right: AppSpacing.lg),
+                decoration: BoxDecoration(
+                  color: AppColors.danger.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Row(
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: Text(
-                        e.name.isEmpty ? 'Quick add' : e.name,
-                        overflow: TextOverflow.ellipsis,
-                        style: text.bodyMedium?.copyWith(
-                          color: e.name.isEmpty
-                              ? AppColors.textSecondary
-                              : AppColors.textPrimary,
-                        ),
-                      ),
+                    Icon(Icons.delete_outline_rounded, color: AppColors.danger),
+                    SizedBox(width: AppSpacing.xs),
+                    Text('Delete', style: TextStyle(color: AppColors.danger)),
+                  ],
+                ),
+              ),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: () => onOpen(e),
+                child: Semantics(
+                  hint: 'Edit',
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      46,
+                      AppSpacing.sm,
+                      0,
+                      AppSpacing.sm,
                     ),
-                    if (e.proteinG != null)
-                      Padding(
-                        padding: const EdgeInsets.only(right: AppSpacing.md),
-                        child: Text(
-                          '${e.proteinG!.round()} g',
-                          style: text.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            foodEntryLabel(e),
+                            overflow: TextOverflow.ellipsis,
+                            style: text.bodyMedium?.copyWith(
+                              color: e.name.isEmpty
+                                  ? AppColors.textSecondary
+                                  : AppColors.textPrimary,
+                            ),
                           ),
                         ),
-                      ),
-                    Text(
-                      '${e.kcal}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontFeatures: [FontFeature.tabularFigures()],
-                      ),
+                        if (e.proteinG != null)
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              right: AppSpacing.md,
+                            ),
+                            child: Text(
+                              '${e.proteinG!.round()} g',
+                              style: text.bodySmall?.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        Text(
+                          '${e.kcal}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        const Icon(
+                          Icons.edit_outlined,
+                          size: 16,
+                          color: AppColors.textTertiary,
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
