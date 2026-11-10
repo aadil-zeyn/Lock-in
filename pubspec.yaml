@@ -70,6 +70,8 @@ flutter:
   # Built-in exercise photos (public domain, see lib/core/utils/exercise_photos.dart).
   assets:
     - assets/exercises/
+    # Share-card backgrounds (Unsplash License, see docs/SHARE_PHOTOS.md).
+    - assets/share/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

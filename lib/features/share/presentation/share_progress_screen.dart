@@ -13,7 +13,9 @@ import '../../../core/widgets/widgets.dart';
 import '../../dashboard/data/dashboard_providers.dart';
 import '../data/day_card.dart';
 import '../data/share_stats.dart';
+import 'share_backgrounds.dart';
 import 'story_cards.dart';
+import 'today_designs.dart';
 
 enum _Template { day, week, workout }
 
@@ -32,8 +34,33 @@ class _ShareProgressScreenState extends ConsumerState<ShareProgressScreen> {
   _Template _template = _Template.day;
   bool _sharing = false;
 
-  /// Optional background photo for the Day card (e.g. a pump pic).
+  /// "Today" layout, by [TodayDesign.id].
+  String _designId = todayDesigns.first.id;
+
+  /// "Today" background: null = today's suggested photo, [_none], [_own]
+  /// (the user's photo), or a [ShareBackground.id].
+  String? _bgChoice;
+  static const _none = 'none';
+  static const _own = 'own';
+
+  /// The user's own photo (e.g. a pump pic).
   Uint8List? _photo;
+
+  TodayDesign get _design => todayDesigns.firstWhere(
+    (t) => t.id == _designId,
+    orElse: () => todayDesigns.first,
+  );
+
+  String _bgKey(DayCardData d) =>
+      _bgChoice ??
+      suggestedBackground(workoutDay: !d.isRestDay, dayOfYear: d.day).id;
+
+  ImageProvider? _bgImage(DayCardData d) {
+    final key = _bgKey(d);
+    if (key == _none) return null;
+    if (key == _own) return _photo == null ? null : MemoryImage(_photo!);
+    return AssetImage('assets/share/$key.webp');
+  }
 
   Future<void> _pickPhoto(ImageSource source) async {
     try {
@@ -47,7 +74,12 @@ class _ShareProgressScreenState extends ConsumerState<ShareProgressScreen> {
       if (!mounted) return;
       // Decode before showing so the shared image never misses the photo.
       await precacheImage(MemoryImage(bytes), context);
-      if (mounted) setState(() => _photo = bytes);
+      if (mounted) {
+        setState(() {
+          _photo = bytes;
+          _bgChoice = _own;
+        });
+      }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -60,13 +92,21 @@ class _ShareProgressScreenState extends ConsumerState<ShareProgressScreen> {
   Future<void> _share() async {
     setState(() => _sharing = true);
     try {
+      // Make sure the background photo is decoded before capturing.
+      final day = ref.read(dayCardProvider).value;
+      final bg = _template == _Template.day && day != null
+          ? _bgImage(day)
+          : null;
+      if (bg != null) await precacheImage(bg, context);
+      await WidgetsBinding.instance.endOfFrame;
+      if (_cardKey.currentContext == null) return;
       final boundary =
           _cardKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
       final image = await boundary.toImage(pixelRatio: 1080 / storySize.width);
       final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
       image.dispose();
       final name = switch (_template) {
-        _Template.day => 'lock-in-day.png',
+        _Template.day => 'lock-in-today.png',
         _Template.week => 'lock-in-week.png',
         _Template.workout => 'lock-in-workout.png',
       };
@@ -105,7 +145,7 @@ class _ShareProgressScreenState extends ConsumerState<ShareProgressScreen> {
     var hasData = true;
     if (_template == _Template.day) {
       final d = day.value;
-      if (d != null) card = DayStoryCard(data: d, photo: _photo);
+      if (d != null) card = _design.builder(d, _bgImage(d));
     } else if (_template == _Template.week) {
       final d = week.value;
       if (d != null) {
@@ -169,36 +209,45 @@ class _ShareProgressScreenState extends ConsumerState<ShareProgressScreen> {
           ),
           if (_template == _Template.day) ...[
             const SizedBox(height: AppSpacing.sm),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
-              child: Row(
+            SizedBox(
+              height: 40,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.page,
+                ),
                 children: [
-                  Expanded(
-                    child: SecondaryButton(
-                      label: _photo == null ? 'Add photo' : 'Change',
-                      icon: Icons.photo_library_rounded,
-                      onPressed: () => _pickPhoto(ImageSource.gallery),
+                  for (final t in todayDesigns)
+                    Padding(
+                      padding: const EdgeInsets.only(right: AppSpacing.sm),
+                      child: SelectChip(
+                        label: t.name,
+                        selected: t.id == _design.id,
+                        onTap: () => setState(() => _designId = t.id),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: SecondaryButton(
-                      label: 'Camera',
-                      icon: Icons.photo_camera_rounded,
-                      onPressed: () => _pickPhoto(ImageSource.camera),
-                    ),
-                  ),
-                  if (_photo != null) ...[
-                    const SizedBox(width: AppSpacing.sm),
-                    IconButton(
-                      tooltip: 'Remove photo',
-                      onPressed: () => setState(() => _photo = null),
-                      icon: const Icon(Icons.close_rounded),
-                    ),
-                  ],
                 ],
               ),
             ),
+            if (day.value case final d?) ...[
+              const SizedBox(height: AppSpacing.sm),
+              _BackgroundStrip(
+                selected: _bgKey(d),
+                backgrounds: backgroundsFor(workoutDay: !d.isRestDay),
+                photo: _photo,
+                onSelect: (key) {
+                  if (key != _none && key != _own) {
+                    precacheImage(
+                      AssetImage('assets/share/$key.webp'),
+                      context,
+                    );
+                  }
+                  setState(() => _bgChoice = key);
+                },
+                onGallery: () => _pickPhoto(ImageSource.gallery),
+                onCamera: () => _pickPhoto(ImageSource.camera),
+              ),
+            ],
           ],
           const SizedBox(height: AppSpacing.md),
           Expanded(
@@ -239,6 +288,158 @@ class _ShareProgressScreenState extends ConsumerState<ShareProgressScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Background picker: no photo, the user's own (gallery / camera), then
+/// the bundled photos with the ones that suit today first.
+class _BackgroundStrip extends StatelessWidget {
+  const _BackgroundStrip({
+    required this.selected,
+    required this.backgrounds,
+    required this.photo,
+    required this.onSelect,
+    required this.onGallery,
+    required this.onCamera,
+  });
+
+  final String selected;
+  final List<ShareBackground> backgrounds;
+  final Uint8List? photo;
+  final ValueChanged<String> onSelect;
+  final VoidCallback onGallery;
+  final VoidCallback onCamera;
+
+  @override
+  Widget build(BuildContext context) {
+    final own = photo;
+    return SizedBox(
+      height: 64,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
+        children: [
+          _Thumb(
+            label: 'No photo',
+            selected: selected == _ShareProgressScreenState._none,
+            onTap: () => onSelect(_ShareProgressScreenState._none),
+            child: const ColoredBox(
+              color: AppColors.surfaceHigh,
+              child: Icon(
+                Icons.block_rounded,
+                color: AppColors.textSecondary,
+                size: 20,
+              ),
+            ),
+          ),
+          _Thumb(
+            label: 'Your photo from gallery',
+            selected: false,
+            onTap: onGallery,
+            child: const ColoredBox(
+              color: AppColors.surfaceHigh,
+              child: Icon(
+                Icons.add_photo_alternate_rounded,
+                color: AppColors.textPrimary,
+                size: 20,
+              ),
+            ),
+          ),
+          _Thumb(
+            label: 'Take a photo',
+            selected: false,
+            onTap: onCamera,
+            child: const ColoredBox(
+              color: AppColors.surfaceHigh,
+              child: Icon(
+                Icons.photo_camera_rounded,
+                color: AppColors.textPrimary,
+                size: 20,
+              ),
+            ),
+          ),
+          if (own != null)
+            _Thumb(
+              label: 'Your photo',
+              selected: selected == _ShareProgressScreenState._own,
+              onTap: () => onSelect(_ShareProgressScreenState._own),
+              child: Image.memory(own, fit: BoxFit.cover, cacheWidth: 120),
+            ),
+          for (final b in backgrounds)
+            _Thumb(
+              label: b.label,
+              selected: selected == b.id,
+              onTap: () => onSelect(b.id),
+              child: Image.asset(b.asset, fit: BoxFit.cover, cacheWidth: 120),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Thumb extends StatelessWidget {
+  const _Thumb({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    required this.child,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: AppSpacing.sm),
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: label,
+        child: Tooltip(
+          message: label,
+          child: GestureDetector(
+            onTap: onTap,
+            child: Container(
+              width: 40,
+              height: 64,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: selected ? AppColors.accent : Colors.transparent,
+                  width: 2,
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    child,
+                    // A tick as well as the border: not colour alone.
+                    if (selected)
+                      const Align(
+                        alignment: Alignment.topRight,
+                        child: Padding(
+                          padding: EdgeInsets.all(3),
+                          child: Icon(
+                            Icons.check_circle_rounded,
+                            size: 14,
+                            color: AppColors.accent,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
