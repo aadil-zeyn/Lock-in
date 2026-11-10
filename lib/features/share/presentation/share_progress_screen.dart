@@ -11,18 +11,38 @@ import '../../../app/theme/app_tokens.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/widgets/widgets.dart';
 import '../../dashboard/data/dashboard_providers.dart';
+import '../../food/data/food_repository.dart';
 import '../data/day_card.dart';
+import '../data/food_share.dart';
 import '../data/share_stats.dart';
 import 'share_backgrounds.dart';
 import 'story_cards.dart';
 import 'today_designs.dart';
 
-enum _Template { day, week, workout }
+/// Which story card the share screen shows.
+enum ShareTemplate {
+  day('Today'),
+  week('This week'),
+  workout('Last workout'),
+  food('Food');
+
+  const ShareTemplate(this.label);
+  final String label;
+}
 
 /// Preview a 9:16 story card and share it as a 1080 × 1920 PNG
 /// (Instagram Stories, WhatsApp status…). It's also screenshot-ready.
 class ShareProgressScreen extends ConsumerStatefulWidget {
-  const ShareProgressScreen({super.key});
+  const ShareProgressScreen({
+    super.key,
+    this.initial = ShareTemplate.day,
+    this.foodDay,
+  });
+
+  final ShareTemplate initial;
+
+  /// Day for the food card (the day open on the Food tab); null = today.
+  final DateTime? foodDay;
 
   @override
   ConsumerState<ShareProgressScreen> createState() =>
@@ -31,7 +51,8 @@ class ShareProgressScreen extends ConsumerStatefulWidget {
 
 class _ShareProgressScreenState extends ConsumerState<ShareProgressScreen> {
   final _cardKey = GlobalKey();
-  _Template _template = _Template.day;
+  late ShareTemplate _template = widget.initial;
+  late final DateTime _foodDay = dayStart(widget.foodDay ?? DateTime.now());
   bool _sharing = false;
 
   /// "Today" layout, by [TodayDesign.id].
@@ -94,7 +115,7 @@ class _ShareProgressScreenState extends ConsumerState<ShareProgressScreen> {
     try {
       // Make sure the background photo is decoded before capturing.
       final day = ref.read(dayCardProvider).value;
-      final bg = _template == _Template.day && day != null
+      final bg = _template == ShareTemplate.day && day != null
           ? _bgImage(day)
           : null;
       if (bg != null) await precacheImage(bg, context);
@@ -106,9 +127,10 @@ class _ShareProgressScreenState extends ConsumerState<ShareProgressScreen> {
       final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
       image.dispose();
       final name = switch (_template) {
-        _Template.day => 'lock-in-today.png',
-        _Template.week => 'lock-in-week.png',
-        _Template.workout => 'lock-in-workout.png',
+        ShareTemplate.day => 'lock-in-today.png',
+        ShareTemplate.week => 'lock-in-week.png',
+        ShareTemplate.workout => 'lock-in-workout.png',
+        ShareTemplate.food => 'lock-in-food.png',
       };
       await SharePlus.instance.share(
         ShareParams(
@@ -143,10 +165,19 @@ class _ShareProgressScreenState extends ConsumerState<ShareProgressScreen> {
 
     Widget? card;
     var hasData = true;
-    if (_template == _Template.day) {
+    if (_template == ShareTemplate.day) {
       final d = day.value;
       if (d != null) card = _design.builder(d, _bgImage(d));
-    } else if (_template == _Template.week) {
+    } else if (_template == ShareTemplate.food) {
+      final d = ref.watch(foodShareProvider(_foodDay)).value;
+      if (d != null) {
+        if (d.isEmpty) {
+          hasData = false;
+        } else {
+          card = FoodStoryCard(data: d);
+        }
+      }
+    } else if (_template == ShareTemplate.week) {
       final d = week.value;
       if (d != null) {
         card = WeekStoryCard(
@@ -183,31 +214,25 @@ class _ShareProgressScreenState extends ConsumerState<ShareProgressScreen> {
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
-            child: Row(
+          SizedBox(
+            height: 40,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
               children: [
-                SelectChip(
-                  label: 'Today',
-                  selected: _template == _Template.day,
-                  onTap: () => setState(() => _template = _Template.day),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                SelectChip(
-                  label: 'This week',
-                  selected: _template == _Template.week,
-                  onTap: () => setState(() => _template = _Template.week),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                SelectChip(
-                  label: 'Last workout',
-                  selected: _template == _Template.workout,
-                  onTap: () => setState(() => _template = _Template.workout),
-                ),
+                for (final t in ShareTemplate.values)
+                  Padding(
+                    padding: const EdgeInsets.only(right: AppSpacing.sm),
+                    child: SelectChip(
+                      label: t.label,
+                      selected: _template == t,
+                      onTap: () => setState(() => _template = t),
+                    ),
+                  ),
               ],
             ),
           ),
-          if (_template == _Template.day) ...[
+          if (_template == ShareTemplate.day) ...[
             const SizedBox(height: AppSpacing.sm),
             SizedBox(
               height: 40,
@@ -252,11 +277,19 @@ class _ShareProgressScreenState extends ConsumerState<ShareProgressScreen> {
           const SizedBox(height: AppSpacing.md),
           Expanded(
             child: !hasData
-                ? const EmptyState(
-                    icon: Icons.fitness_center_rounded,
-                    title: 'No workouts yet',
-                    message: 'Finish one and you can share it here.',
-                  )
+                ? _template == ShareTemplate.food
+                      ? EmptyState(
+                          icon: Icons.restaurant_rounded,
+                          title: _foodDay == dayStart(DateTime.now())
+                              ? 'Nothing logged today'
+                              : 'Nothing logged that day',
+                          message: 'Log a meal on the Food tab to share it.',
+                        )
+                      : const EmptyState(
+                          icon: Icons.fitness_center_rounded,
+                          title: 'No workouts yet',
+                          message: 'Finish one and you can share it here.',
+                        )
                 : card == null
                 ? const Center(child: CircularProgressIndicator())
                 : Padding(

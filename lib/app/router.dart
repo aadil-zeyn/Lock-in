@@ -113,7 +113,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: Routes.shareProgress,
-        builder: (context, state) => const ShareProgressScreen(),
+        builder: (context, state) {
+          final q = state.uri.queryParameters;
+          return ShareProgressScreen(
+            initial:
+                ShareTemplate.values.asNameMap()[q['card']] ??
+                ShareTemplate.day,
+            foodDay: DateTime.tryParse(q['day'] ?? ''),
+          );
+        },
       ),
       GoRoute(
         path: Routes.healthConnect,

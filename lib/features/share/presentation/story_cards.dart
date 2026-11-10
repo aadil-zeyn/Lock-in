@@ -9,6 +9,7 @@ import '../../../core/widgets/widgets.dart';
 import '../../workout/data/workout_repository.dart';
 import '../../workout/presentation/set_row.dart';
 import '../data/day_card.dart';
+import '../data/food_share.dart';
 import '../data/share_stats.dart';
 
 /// Story cards are laid out at 360 × 640 logical px (9:16) and captured at
@@ -1035,4 +1036,340 @@ class _Pill extends StatelessWidget {
       ),
     );
   }
+}
+
+IconData mealIcon(Meal meal) => switch (meal) {
+  Meal.breakfast => Icons.free_breakfast_rounded,
+  Meal.lunch => Icons.lunch_dining_rounded,
+  Meal.dinner => Icons.dinner_dining_rounded,
+  Meal.snack => Icons.cookie_rounded,
+};
+
+/// "Food": calories + protein rings, macros, what was eaten per meal and
+/// the last 7 days of calories against the target.
+class FoodStoryCard extends StatelessWidget {
+  const FoodStoryCard({super.key, required this.data});
+  final FoodShare data;
+
+  static const _letters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+  @override
+  Widget build(BuildContext context) {
+    final d = data;
+    final left = d.kcalGoal - d.kcal;
+    return _StoryFrame(
+      glow: AppColors.food,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          StoryBrand(right: formatLongDate(d.day).toUpperCase()),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              ActivityRings(
+                size: 112,
+                strokeWidth: 13,
+                gap: 4,
+                rings: [
+                  RingData(
+                    progress: d.kcalGoal == 0 ? 0 : d.kcal / d.kcalGoal,
+                    color: AppColors.food,
+                  ),
+                  RingData(
+                    progress: d.proteinGoal == 0
+                        ? 0
+                        : d.proteinG / d.proteinGoal,
+                    color: AppColors.protein,
+                  ),
+                ],
+                center: const Icon(
+                  Icons.restaurant_rounded,
+                  color: AppColors.food,
+                  size: 26,
+                ),
+              ),
+              const SizedBox(width: 18),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'FUELLED',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.6,
+                        color: AppColors.food,
+                      ),
+                    ),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        thousands(d.kcal),
+                        style: const TextStyle(
+                          fontSize: 40,
+                          height: 1.05,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -1,
+                          color: AppColors.textPrimary,
+                          fontFeatures: [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ),
+                    Text(
+                      'of ${thousands(d.kcalGoal)} kcal',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: _Pill(
+                        done: d.kcalOk,
+                        color: AppColors.food,
+                        text: d.kcalOk
+                            ? 'Calories on target'
+                            : left >= 0
+                            ? '${thousands(left)} kcal left'
+                            : '${thousands(-left)} kcal over',
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: _Pill(
+                        done: d.proteinOk,
+                        color: AppColors.protein,
+                        text: d.proteinOk || d.proteinGoal <= 0
+                            ? 'Protein goal hit'
+                            : '${d.proteinGoal - d.proteinG} g protein to go',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _Tile(
+                  label: 'Protein',
+                  value: '${d.proteinG}',
+                  unit: 'g',
+                  color: AppColors.protein,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _Tile(
+                  label: 'Carbs',
+                  value: '${d.carbsG}',
+                  unit: 'g',
+                  color: AppColors.carbs,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _Tile(
+                  label: 'Fat',
+                  value: '${d.fatG}',
+                  unit: 'g',
+                  color: AppColors.fat,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          for (final m in d.meals)
+            Container(
+              margin: const EdgeInsets.only(bottom: 5),
+              padding: const EdgeInsets.fromLTRB(8, 6, 12, 6),
+              decoration: BoxDecoration(
+                color: AppColors.surface.withValues(alpha: 0.85),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                children: [
+                  IconBadge(
+                    icon: mealIcon(m.meal),
+                    color: AppColors.food,
+                    size: 26,
+                    circle: false,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: m.meal.label,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          TextSpan(
+                            text: '  ${m.items.join(', ')}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${thousands(m.kcal)} kcal',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const Spacer(),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'LAST 7 DAYS',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+              if (d.loggedStreak >= 2)
+                Text(
+                  '${d.loggedStreak}-day logging streak',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.food,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          _KcalBars(kcal: d.weekKcal, goal: d.kcalGoal),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              for (var i = 0; i < d.weekKcal.length; i++)
+                Expanded(
+                  child: Text(
+                    _letters[DateTime(
+                          d.day.year,
+                          d.day.month,
+                          d.day.day - (d.weekKcal.length - 1 - i),
+                        ).weekday -
+                        1],
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: i == d.weekKcal.length - 1
+                          ? AppColors.textPrimary
+                          : AppColors.textTertiary,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          const StoryFooter(),
+        ],
+      ),
+    );
+  }
+}
+
+/// Daily calorie bars with a dashed target line; the last bar (the day
+/// being shared) is solid, the others faded.
+class _KcalBars extends StatelessWidget {
+  const _KcalBars({required this.kcal, required this.goal});
+  final List<int> kcal;
+  final int goal;
+
+  static const _height = 36.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final top = [goal, ...kcal].fold(1, (a, b) => a > b ? a : b) * 1.1;
+    return SizedBox(
+      height: _height,
+      child: Stack(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              for (var i = 0; i < kcal.length; i++)
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Container(
+                      width: 18,
+                      height: kcal[i] == 0
+                          ? 3
+                          : (kcal[i] / top * _height).clamp(3.0, _height),
+                      decoration: BoxDecoration(
+                        color: kcal[i] == 0
+                            ? AppColors.surfaceHigh
+                            : AppColors.food.withValues(
+                                alpha: i == kcal.length - 1 ? 1 : 0.45,
+                              ),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          if (goal > 0)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: goal / top * _height,
+              child: CustomPaint(
+                size: const Size(double.infinity, 1),
+                painter: _DashPainter(),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DashPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.4)
+      ..strokeWidth = 1;
+    for (var x = 0.0; x < size.width; x += 7) {
+      canvas.drawLine(Offset(x, 0), Offset(x + 3.5, 0), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashPainter old) => false;
 }
