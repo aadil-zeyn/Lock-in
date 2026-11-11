@@ -62,6 +62,9 @@ Future<void> showFoodEntrySheet(
         ..showSnackBar(
           SnackBar(
             content: Text('Deleted ${foodEntryLabel(entry)}'),
+            // Actions make snackbars stick by default; let it time out.
+            persist: false,
+            duration: const Duration(seconds: 5),
             action: SnackBarAction(
               label: 'Undo',
               onPressed: () => repo.restoreEntry(entry),

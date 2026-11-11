@@ -50,6 +50,9 @@ class _FoodScreenState extends ConsumerState<FoodScreen> {
       ..showSnackBar(
         SnackBar(
           content: Text('Added ${f.name} to ${meal.label}'),
+          // Actions make snackbars stick by default; let it time out.
+          persist: false,
+          duration: const Duration(seconds: 5),
           action: SnackBarAction(
             label: 'Undo',
             onPressed: () => repo.deleteEntry(id),
@@ -76,6 +79,9 @@ class _FoodScreenState extends ConsumerState<FoodScreen> {
       ..showSnackBar(
         SnackBar(
           content: Text('Deleted ${foodEntryLabel(e)}'),
+          // Actions make snackbars stick by default; let it time out.
+          persist: false,
+          duration: const Duration(seconds: 5),
           action: SnackBarAction(
             label: 'Undo',
             onPressed: () => repo.restoreEntry(e),

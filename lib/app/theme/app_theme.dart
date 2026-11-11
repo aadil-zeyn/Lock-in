@@ -179,6 +179,7 @@ abstract final class AppTheme {
         behavior: SnackBarBehavior.floating,
         backgroundColor: AppColors.surfaceHigh,
         contentTextStyle: TextStyle(color: AppColors.textPrimary),
+        actionTextColor: AppColors.accent,
       ),
       dividerTheme: const DividerThemeData(
         color: AppColors.outline,

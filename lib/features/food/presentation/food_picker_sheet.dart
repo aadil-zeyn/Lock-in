@@ -77,6 +77,9 @@ Future<void> showFoodPicker(
         ..showSnackBar(
           SnackBar(
             content: Text('$verb ${foodEntryLabel(entry)} · ${m.label}'),
+            // Actions make snackbars stick by default; let it time out.
+            persist: false,
+            duration: const Duration(seconds: 5),
             action: SnackBarAction(
               label: 'Edit',
               onPressed: () async {

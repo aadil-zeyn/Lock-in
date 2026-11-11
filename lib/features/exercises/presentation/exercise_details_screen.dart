@@ -266,6 +266,9 @@ class ExerciseDetailsScreen extends ConsumerWidget {
       ..showSnackBar(
         SnackBar(
           content: Text('${exercise.name} archived'),
+          // Actions make snackbars stick by default; let it time out.
+          persist: false,
+          duration: const Duration(seconds: 5),
           action: SnackBarAction(
             label: 'Undo',
             onPressed: () => repo.restore(exercise.id),

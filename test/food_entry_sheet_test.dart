@@ -117,4 +117,19 @@ void main() {
     await tester.pumpAndSettle();
     expect((await repo.getEntry(id))?.kcal, 250);
   });
+
+  testWidgets('the Undo snackbar times out instead of sticking', (
+    tester,
+  ) async {
+    final id = await repo.addEntry(kcal: 250, meal: Meal.snack, at: noon);
+    await openEditor(tester, (await repo.getEntry(id))!);
+
+    await tester.tap(find.byTooltip('Delete entry'));
+    await tester.pumpAndSettle();
+    expect(find.text('Deleted Quick add'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
+    expect(find.text('Deleted Quick add'), findsNothing);
+  });
 }
