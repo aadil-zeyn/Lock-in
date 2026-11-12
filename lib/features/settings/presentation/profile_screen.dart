@@ -13,6 +13,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_provider.dart';
 import '../../history_import/data/history_export.dart';
+import '../data/backup.dart';
 import '../../../core/widgets/widgets.dart';
 import '../../dashboard/data/dashboard_providers.dart';
 
@@ -46,6 +47,32 @@ Future<void> _exportCsv(BuildContext context, WidgetRef ref) async {
     );
   } catch (e) {
     messenger.showSnackBar(SnackBar(content: Text('Export failed: $e')));
+  }
+}
+
+/// Shares the whole database as one JSON file (see [buildBackup]). The
+/// Kotlin app's Profile → Backup & restore reads it.
+Future<void> _exportBackup(BuildContext context, WidgetRef ref) async {
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    final json = await exportBackupJson(ref.read(databaseProvider));
+    final now = DateTime.now();
+    final day =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-'
+        '${now.day.toString().padLeft(2, '0')}';
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [
+          XFile.fromData(
+            Uint8List.fromList(utf8.encode(json)),
+            mimeType: 'application/json',
+          ),
+        ],
+        fileNameOverrides: ['lock-in-backup-$day.json'],
+      ),
+    );
+  } catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text('Backup failed: $e')));
   }
 }
 
@@ -167,8 +194,9 @@ class ProfileScreen extends ConsumerWidget {
             ),
             _SettingsTile(
               icon: Icons.backup_outlined,
-              title: 'Backup & restore',
-              onTap: soon,
+              title: 'Back up everything',
+              value: 'Workouts, food, weight',
+              onTap: () => _exportBackup(context, ref),
             ),
           ],
         ),
