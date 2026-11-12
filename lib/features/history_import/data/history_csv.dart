@@ -104,6 +104,14 @@ ParsedHistory parseHistoryCsv(String text) {
     final line = i + 1;
     if (r.every((c) => c.trim().isEmpty)) continue;
 
+    // Library rows (an exercise definition with no date and no set) come
+    // from Export to CSV; this importer only reads logged sets.
+    if (col(r, 'date').isEmpty &&
+        col(r, 'reps').isEmpty &&
+        col(r, 'seconds').isEmpty) {
+      continue;
+    }
+
     final date = DateTime.tryParse(col(r, 'date'));
     if (date == null || col(r, 'date').length != 10) {
       problems.add('Line $line: date must look like 2026-10-14.');

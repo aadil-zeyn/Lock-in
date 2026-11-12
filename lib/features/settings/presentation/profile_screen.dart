@@ -1,10 +1,18 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
 import '../../../app/theme/app_tokens.dart';
+
+import 'package:share_plus/share_plus.dart';
+
 import '../../../core/database/app_database.dart';
+import '../../../core/database/database_provider.dart';
+import '../../history_import/data/history_export.dart';
 import '../../../core/widgets/widgets.dart';
 import '../../dashboard/data/dashboard_providers.dart';
 
@@ -13,6 +21,32 @@ const appVersion = '0.6';
 String _feetInches(double cm) {
   final total = (cm / 2.54).round();
   return "${total ~/ 12}' ${total % 12}\"";
+}
+
+/// Shares every finished workout and custom exercise as one CSV file
+/// (see [exportHistoryCsv]); Import history reads the same format.
+Future<void> _exportCsv(BuildContext context, WidgetRef ref) async {
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    final csv = await exportHistoryCsv(ref.read(databaseProvider));
+    final now = DateTime.now();
+    final day =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-'
+        '${now.day.toString().padLeft(2, '0')}';
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [
+          XFile.fromData(
+            Uint8List.fromList(utf8.encode(csv)),
+            mimeType: 'text/csv',
+          ),
+        ],
+        fileNameOverrides: ['lock-in-export-$day.csv'],
+      ),
+    );
+  } catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text('Export failed: $e')));
+  }
 }
 
 class ProfileScreen extends ConsumerWidget {
@@ -128,7 +162,8 @@ class ProfileScreen extends ConsumerWidget {
             _SettingsTile(
               icon: Icons.ios_share_rounded,
               title: 'Export to CSV',
-              onTap: soon,
+              value: 'Workouts & exercises',
+              onTap: () => _exportCsv(context, ref),
             ),
             _SettingsTile(
               icon: Icons.backup_outlined,
