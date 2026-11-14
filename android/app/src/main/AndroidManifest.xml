@@ -9,7 +9,7 @@
     <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_HISTORY"/>
 
     <application
-        android:label="Lock-in"
+        android:label="Gym Tracker"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

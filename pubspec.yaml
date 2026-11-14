@@ -104,16 +104,16 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 
-# App icon: activity-ring mark. Regenerate with `dart run flutter_launcher_icons`.
+# App icon: dumbbell on deep blue ("Gym Tracker"). Regenerate with `dart run flutter_launcher_icons`.
 flutter_launcher_icons:
   android: true
   ios: false
   image_path: "assets/icon/icon.png"
-  adaptive_icon_background: "#000000"
+  adaptive_icon_background: "#0C2442"
   adaptive_icon_foreground: "assets/icon/icon_foreground.png"
   adaptive_icon_monochrome: "assets/icon/icon_monochrome.png"
   web:
     generate: true
     image_path: "assets/icon/icon.png"
-    background_color: "#000000"
+    background_color: "#0C2442"
     theme_color: "#000000"
