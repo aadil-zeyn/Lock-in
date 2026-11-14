@@ -1,9 +1,9 @@
 {
-    "name": "Lock-in",
-    "short_name": "Lock-in",
+    "name": "Gym Tracker",
+    "short_name": "Gym Tracker",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#000000",
+    "background_color": "#0C2442",
     "theme_color": "#000000",
     "description": "Offline-first strength-training tracker.",
     "orientation": "portrait-primary",
